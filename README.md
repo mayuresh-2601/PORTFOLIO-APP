@@ -1,4 +1,4 @@
-# Portfolio App — README (Detailed)
+# Portfolio App 
 
 A complete and practical README for the Full Stack Portfolio Management System (React + Vite frontend, Express backend).
 
