@@ -16,6 +16,8 @@ A complete and practical README for the Full Stack Portfolio Management System (
 
 This repository contains two main apps:
 
+
+
 - `client/` — React 18 + Vite frontend (public portfolio + admin UI)
 - `server/` — Node.js + Express backend (REST API, authentication, uploads)
 
