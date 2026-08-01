@@ -5,36 +5,72 @@ export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    // Validate request
     if (!email || !password) {
-      return res.status(400).json({ message: "Email and password required" });
+      return res.status(400).json({
+        success: false,
+        message: "Email and password are required.",
+      });
     }
 
-    // Trim whitespace and lower-case both inputs for comparison
-    const inputEmail = email.trim().toLowerCase();
-    const envAdminEmail = (process.env.ADMIN_EMAIL || "").trim().toLowerCase();
+    const adminEmail = (process.env.ADMIN_EMAIL || "").trim().toLowerCase();
+    const adminPasswordHash = (process.env.ADMIN_PASSWORD_HASH || "").trim();
+    const jwtSecret = process.env.JWT_SECRET;
 
-    if (inputEmail !== envAdminEmail) {
-      return res.status(401).json({ message: "Invalid email" });
+    // Ensure server is properly configured
+    if (!adminEmail || !adminPasswordHash || !jwtSecret) {
+      console.error("Missing required authentication environment variables.");
+
+      return res.status(500).json({
+        success: false,
+        message: "Server configuration error.",
+      });
     }
 
+    // Verify email
+    if (email.trim().toLowerCase() !== adminEmail) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password.",
+      });
+    }
+
+    // Verify password
     const isMatch = await bcrypt.compare(
       password.trim(),
-      process.env.ADMIN_PASSWORD_HASH
+      adminPasswordHash
     );
 
     if (!isMatch) {
-      return res.status(401).json({ message: "Invalid password" });
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password.",
+      });
     }
 
+    // Generate JWT
     const token = jwt.sign(
-      { email: envAdminEmail, role: "admin" },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
+      {
+        email: adminEmail,
+        role: "admin",
+      },
+      jwtSecret,
+      {
+        expiresIn: "7d",
+      }
     );
 
-    return res.status(200).json({ message: "Login successful", token });
+    return res.status(200).json({
+      success: true,
+      message: "Login successful.",
+      token,
+    });
   } catch (error) {
-    console.error("LOGIN ERROR:", error);
-    return res.status(500).json({ message: "Server error" });
+    console.error("Login Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error.",
+    });
   }
 };

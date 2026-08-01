@@ -1,35 +1,55 @@
 import axios from "axios";
 
-const API_URL = import.meta.env.VITE_API_URL?.replace(/\/$/, "") || "http://localhost:5000";
+// Read API URL from environment
+const API_URL =
+  (import.meta.env.VITE_API_BASE_URL ||
+    import.meta.env.VITE_API_URL ||
+    "http://localhost:5000").replace(/\/$/, "");
 
 const api = axios.create({
   baseURL: `${API_URL}/api`,
   withCredentials: true,
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
 
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  if (config.data instanceof FormData) {
-    delete config.headers["Content-Type"];
-  } else {
-    config.headers["Content-Type"] = "application/json";
-  }
-  return config;
-});
+// ================================
+// Request Interceptor
+// ================================
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token");
 
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    // Let browser automatically set multipart headers
+    if (config.data instanceof FormData) {
+      delete config.headers["Content-Type"];
+    }
+
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// ================================
+// Response Interceptor
+// ================================
 api.interceptors.response.use(
-  (res) => res,
-  (err) => {
-    if (err.response?.status === 401) {
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
       localStorage.removeItem("token");
+
       if (window.location.pathname.startsWith("/admin")) {
-        window.location.href = "/admin";
+        window.location.replace("/admin");
       }
     }
-    return Promise.reject(err);
+
+    return Promise.reject(error);
   }
 );
 
