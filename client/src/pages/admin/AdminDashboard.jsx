@@ -19,16 +19,45 @@ export default function AdminDashboard() {
 
   const loadData = async () => {
     try {
+      setLoading(true);
+
       const [pRes, sRes, cRes] = await Promise.all([
         api.get("/projects"),
         api.get("/skills"),
         api.get("/certificates"),
       ]);
-      setProjects(pRes.data);
-      setSkills(sRes.data);
-      setCertificates(cRes.data);
+
+      setProjects(
+        Array.isArray(pRes.data)
+          ? pRes.data
+          : Array.isArray(pRes.data.data)
+          ? pRes.data.data
+          : []
+      );
+
+      setSkills(
+        Array.isArray(sRes.data)
+          ? sRes.data
+          : Array.isArray(sRes.data.data)
+          ? sRes.data.data
+          : []
+      );
+
+      setCertificates(
+        Array.isArray(cRes.data)
+          ? cRes.data
+          : Array.isArray(cRes.data.data)
+          ? cRes.data.data
+          : []
+      );
     } catch (err) {
-      console.error(err);
+      console.error("Failed to load dashboard data:", err);
+
+      setProjects([]);
+      setSkills([]);
+      setCertificates([]);
+    } finally {
+      setLoading(false);
     }
   };
 
