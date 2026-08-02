@@ -6,64 +6,131 @@ import api from "../../api/axios";
 export default function Certificates() {
   const [certificates, setCertificates] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    api
-      .get("/certificates")
-      .then((res) => setCertificates(res.data))
-      .catch((err) => console.error(err))
-      .finally(() => setLoading(false));
+    fetchCertificates();
   }, []);
 
+  const fetchCertificates = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const response = await api.get("/certificates");
+
+      // Supports both:
+      // [{...}]
+      // { success:true, data:[...] }
+      const certificatesData = Array.isArray(response.data)
+        ? response.data
+        : Array.isArray(response.data.data)
+        ? response.data.data
+        : [];
+
+      setCertificates(certificatesData);
+    } catch (err) {
+      console.error("Failed to fetch certificates:", err);
+
+      setCertificates([]);
+
+      setError(
+        err.response?.data?.message ||
+          "Unable to load certificates. Please try again later."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <section className="min-h-screen pt-32 pb-20 px-6">
-      <div className="max-w-6xl mx-auto space-y-12">
-        <div className="text-center space-y-4">
-          <h2 className="text-4xl md:text-5xl font-black">
+    <section className="min-h-screen px-6 pb-20 pt-32">
+      <div className="mx-auto max-w-6xl space-y-12">
+        {/* Heading */}
+        <div className="space-y-4 text-center">
+          <h2 className="text-4xl font-black md:text-5xl">
             My <span className="text-gradient">Certificates</span>
           </h2>
-          <p className="text-gray-400 max-w-xl mx-auto">
+
+          <p className="mx-auto max-w-xl text-gray-400">
             Licenses, certifications, and technical accomplishments.
           </p>
         </div>
 
-        {loading ? (
-          <p className="text-center text-gray-500">Loading certificates...</p>
-        ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+        {/* Loading */}
+        {loading && (
+          <div className="py-20 text-center text-gray-400">
+            Loading certificates...
+          </div>
+        )}
+
+        {/* Error */}
+        {!loading && error && (
+          <div className="glass-card rounded-2xl border border-red-500/20 p-8 text-center">
+            <h3 className="mb-2 text-xl font-bold text-red-400">
+              Failed to Load Certificates
+            </h3>
+
+            <p className="text-gray-400">{error}</p>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!loading && !error && certificates.length === 0 && (
+          <div className="glass-card rounded-2xl p-10 text-center">
+            <Award size={48} className="mx-auto mb-4 text-sky-400" />
+
+            <h3 className="mb-2 text-2xl font-bold text-white">
+              No Certificates Available
+            </h3>
+
+            <p className="text-gray-400">
+              Certificates will appear here after being added from the admin dashboard.
+            </p>
+          </div>
+        )}
+
+        {/* Certificates Grid */}
+        {!loading && !error && certificates.length > 0 && (
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
             {certificates.map((cert, index) => (
               <motion.div
                 key={cert.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="glass-card rounded-2xl overflow-hidden flex flex-col justify-between p-6 space-y-4"
+                transition={{ delay: index * 0.08 }}
+                className="glass-card flex flex-col justify-between overflow-hidden rounded-2xl p-6"
               >
                 {cert.image && (
-                  <div className="h-44 rounded-xl overflow-hidden bg-white/5">
+                  <div className="mb-5 h-44 overflow-hidden rounded-xl bg-white/5">
                     <img
                       src={cert.image}
                       alt={cert.title}
-                      className="w-full h-full object-cover"
+                      className="h-full w-full object-cover"
                     />
                   </div>
                 )}
 
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sky-400 text-sm font-medium">
-                    <Award size={16} /> {cert.issuer}
+                  <div className="flex items-center gap-2 text-sm font-medium text-sky-400">
+                    <Award size={16} />
+                    {cert.issuer}
                   </div>
-                  <h3 className="text-xl font-bold text-white">{cert.title}</h3>
+
+                  <h3 className="text-xl font-bold text-white">
+                    {cert.title}
+                  </h3>
                 </div>
 
                 {cert.link && (
                   <a
                     href={cert.link}
                     target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-sky-400 transition pt-2"
+                    rel="noopener noreferrer"
+                    className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-gray-300 transition hover:text-sky-400"
                   >
-                    View Credential <ExternalLink size={16} />
+                    View Credential
+                    <ExternalLink size={16} />
                   </a>
                 )}
               </motion.div>

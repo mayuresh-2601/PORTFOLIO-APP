@@ -17,30 +17,45 @@ export default function Skills() {
       setLoading(true);
       setError("");
 
-      const { data } = await api.get("/skills");
+      const response = await api.get("/skills");
 
-      setSkills(Array.isArray(data) ? data : []);
+      // Supports both:
+      // [{...}]
+      // { success:true, data:[...] }
+      const skillsData = Array.isArray(response.data)
+        ? response.data
+        : Array.isArray(response.data.data)
+        ? response.data.data
+        : [];
+
+      setSkills(skillsData);
     } catch (err) {
-      console.error(err);
-      setError("Unable to load skills. Please try again later.");
+      console.error("Failed to fetch skills:", err);
+
+      setSkills([]);
+
+      setError(
+        err.response?.data?.message ||
+          "Unable to load skills. Please try again later."
+      );
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <section className="min-h-screen pt-32 pb-20 px-6">
-      <div className="max-w-6xl mx-auto space-y-12">
+    <section className="min-h-screen px-6 pb-20 pt-32">
+      <div className="mx-auto max-w-6xl space-y-12">
         {/* Heading */}
-        <div className="text-center space-y-4">
-          <h2 className="text-4xl md:text-5xl font-black">
+        <div className="space-y-4 text-center">
+          <h2 className="text-4xl font-black md:text-5xl">
             Technical <span className="text-gradient">Skills</span>
           </h2>
 
-          <p className="max-w-2xl mx-auto text-gray-400">
-            A collection of technologies, programming languages, frameworks,
-            databases, and development tools I use to build secure, scalable,
-            and modern web applications.
+          <p className="mx-auto max-w-2xl text-gray-400">
+            A collection of technologies, programming languages,
+            frameworks, databases, and development tools I use to
+            build secure, scalable, and modern web applications.
           </p>
         </div>
 
@@ -62,10 +77,13 @@ export default function Skills() {
           </div>
         )}
 
-        {/* Empty State */}
+        {/* Empty */}
         {!loading && !error && skills.length === 0 && (
           <div className="glass-card rounded-2xl p-10 text-center">
-            <Code2 size={48} className="mx-auto mb-4 text-sky-400" />
+            <Code2
+              size={48}
+              className="mx-auto mb-4 text-sky-400"
+            />
 
             <h3 className="mb-2 text-2xl font-bold text-white">
               No Skills Available
@@ -77,7 +95,7 @@ export default function Skills() {
           </div>
         )}
 
-        {/* Skills Grid */}
+        {/* Skills */}
         {!loading && !error && skills.length > 0 && (
           <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3">
             {skills.map((skill, index) => (
@@ -108,7 +126,9 @@ export default function Skills() {
                 >
                   <motion.div
                     initial={{ width: 0 }}
-                    animate={{ width: `${skill.level ?? 80}%` }}
+                    animate={{
+                      width: `${skill.level ?? 80}%`,
+                    }}
                     transition={{ duration: 1 }}
                     className="h-full rounded-full bg-gradient-to-r from-sky-400 to-indigo-500"
                   />
