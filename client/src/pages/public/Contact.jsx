@@ -1,135 +1,219 @@
-import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { Mail, Send } from "lucide-react";
+import api from "../../api/axios";
 
-const Contact = () => {
-  const [formData, setFormData] = useState({ name: '', email: '', subject: '', message: '' });
-  const [status, setStatus] = useState({ loading: false, success: null, error: null });
+export default function Contact() {
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    subject: "",
+    message: "",
+  });
+
+  const [status, setStatus] = useState({
+    loading: false,
+    success: "",
+    error: "",
+  });
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      email: "",
+      subject: "",
+      message: "",
+    });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setStatus({ loading: true, success: null, error: null });
+
+    if (status.loading) return;
+
+    const payload = {
+      name: formData.name.trim(),
+      email: formData.email.trim(),
+      subject: formData.subject.trim(),
+      message: formData.message.trim(),
+    };
+
+    if (
+      !payload.name ||
+      !payload.email ||
+      !payload.subject ||
+      !payload.message
+    ) {
+      setStatus({
+        loading: false,
+        success: "",
+        error: "Please fill in all required fields.",
+      });
+      return;
+    }
 
     try {
-      const response = await fetch('/api/contact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+      setStatus({
+        loading: true,
+        success: "",
+        error: "",
       });
 
-      const data = await response.json();
+      const { data } = await api.post("/messages", payload);
 
-      if (data.success) {
-        setStatus({ loading: false, success: 'Message sent successfully!', error: null });
-        setFormData({ name: '', email: '', subject: '', message: '' });
-      } else {
-        throw new Error(data.message || 'Failed to send message.');
-      }
-    } catch (err) {
-      setStatus({ loading: false, success: null, error: err.message });
+      setStatus({
+        loading: false,
+        success:
+          data?.message || "Your message has been sent successfully!",
+        error: "",
+      });
+
+      resetForm();
+    } catch (error) {
+      setStatus({
+        loading: false,
+        success: "",
+        error:
+          error?.response?.data?.message ||
+          "Something went wrong. Please try again.",
+      });
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-6">
-      <motion.div 
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: 'easeOut' }}
-        className="w-full max-w-xl p-8 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 shadow-2xl"
-      >
-        <motion.h2 
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.2, duration: 0.5 }}
-          className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent mb-2"
+    <section className="min-h-screen bg-[#030712] pt-32 pb-20 px-6">
+      <div className="max-w-3xl mx-auto">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="glass-card rounded-3xl p-8 md:p-10"
         >
-          Get In Touch
-        </motion.h2>
-        
-        <p className="text-slate-400 mb-6">Have a project in mind or want to connect? Send a message below.</p>
+          <div className="mb-8 text-center">
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-sky-500/10 border border-sky-500/20">
+              <Mail size={30} className="text-sky-400" />
+            </div>
 
-        {status.success && (
-          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="p-4 mb-4 rounded-lg bg-green-500/20 border border-green-500/30 text-green-300">
-            {status.success}
-          </motion.div>
-        )}
+            <h2 className="text-4xl font-black text-white">
+              Get In <span className="text-gradient">Touch</span>
+            </h2>
 
-        {status.error && (
-          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="p-4 mb-4 rounded-lg bg-red-500/20 border border-red-500/30 text-red-300">
-            {status.error}
-          </motion.div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1">Name</label>
-            <input
-              type="text"
-              name="name"
-              required
-              value={formData.name}
-              onChange={handleChange}
-              className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-blue-500 transition-colors"
-              placeholder="Your Name"
-            />
+            <p className="mt-3 text-gray-400">
+              Have a project idea, freelance opportunity, or collaboration?
+              Feel free to send me a message.
+            </p>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1">Email</label>
-            <input
-              type="email"
-              name="email"
-              required
-              value={formData.email}
-              onChange={handleChange}
-              className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-blue-500 transition-colors"
-              placeholder="your.email@example.com"
-            />
-          </div>
+          {status.success && (
+            <div className="mb-6 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-400">
+              {status.success}
+            </div>
+          )}
 
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1">Subject</label>
-            <input
-              type="text"
-              name="subject"
-              required
-              value={formData.subject}
-              onChange={handleChange}
-              className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-blue-500 transition-colors"
-              placeholder="Project Inquiry"
-            />
-          </div>
+          {status.error && (
+            <div className="mb-6 rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-400">
+              {status.error}
+            </div>
+          )}
 
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1">Message</label>
-            <textarea
-              name="message"
-              required
-              rows="4"
-              value={formData.message}
-              onChange={handleChange}
-              className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-blue-500 transition-colors"
-              placeholder="Tell me about your project..."
-            ></textarea>
-          </div>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="grid gap-5 md:grid-cols-2">
 
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            type="submit"
-            disabled={status.loading}
-            className="w-full py-3 px-6 rounded-lg bg-gradient-to-r from-blue-500 to-purple-600 font-semibold text-white shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 transition-all disabled:opacity-50"
-          >
-            {status.loading ? 'Sending...' : 'Send Message'}
-          </motion.button>
-        </form>
-      </motion.div>
-    </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-300">
+                  Full Name
+                </label>
+
+                <input
+                  type="text"
+                  name="name"
+                  autoComplete="name"
+                  disabled={status.loading}
+                  value={formData.name}
+                  onChange={handleChange}
+                  placeholder="Enter your full name"
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-gray-500 focus:border-sky-500 focus:outline-none disabled:opacity-60"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-300">
+                  Email Address
+                </label>
+
+                <input
+                  type="email"
+                  name="email"
+                  autoComplete="email"
+                  disabled={status.loading}
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="you@example.com"
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-gray-500 focus:border-sky-500 focus:outline-none disabled:opacity-60"
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-300">
+                Subject
+              </label>
+
+              <input
+                type="text"
+                name="subject"
+                disabled={status.loading}
+                value={formData.subject}
+                onChange={handleChange}
+                placeholder="Project Discussion"
+                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-gray-500 focus:border-sky-500 focus:outline-none disabled:opacity-60"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-300">
+                Message
+              </label>
+
+              <textarea
+                rows={6}
+                name="message"
+                disabled={status.loading}
+                value={formData.message}
+                onChange={handleChange}
+                placeholder="Tell me about your project..."
+                className="w-full resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-gray-500 focus:border-sky-500 focus:outline-none disabled:opacity-60"
+                required
+              />
+            </div>
+
+            <motion.button
+              whileHover={{ scale: status.loading ? 1 : 1.02 }}
+              whileTap={{ scale: status.loading ? 1 : 0.98 }}
+              type="submit"
+              disabled={status.loading}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-sky-500 py-4 font-semibold text-white transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              <Send size={18} />
+
+              {status.loading ? "Sending Message..." : "Send Message"}
+            </motion.button>
+          </form>
+        </motion.div>
+      </div>
+    </section>
   );
-};
-
-export default Contact;
+}

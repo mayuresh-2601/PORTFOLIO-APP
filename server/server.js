@@ -19,9 +19,16 @@ import {
 
 const app = express();
 
-// ========================================
-// Validate Required Environment Variables
-// ========================================
+
+// Express Configuration
+
+
+app.disable("x-powered-by");
+app.set("trust proxy", 1);
+
+
+// Environment Validation
+
 
 const requiredEnv = [
   "DB_HOST",
@@ -37,16 +44,16 @@ const missing = requiredEnv.filter(
   (key) => !process.env[key]
 );
 
-if (missing.length) {
+if (missing.length > 0) {
   console.error(
     `Missing environment variables: ${missing.join(", ")}`
   );
   process.exit(1);
 }
 
-// ========================================
+
 // Global Middleware
-// ========================================
+
 
 app.use(
   helmet({
@@ -58,7 +65,7 @@ app.use(
 
 app.use(
   cors({
-    origin: true,
+    origin: process.env.CLIENT_URL || true,
     credentials: true,
   })
 );
@@ -78,9 +85,9 @@ app.use(
   })
 );
 
-// ========================================
-// Health Check
-// ========================================
+
+// Health Routes
+
 
 app.get("/", (req, res) => {
   res.status(200).json({
@@ -89,9 +96,18 @@ app.get("/", (req, res) => {
   });
 });
 
-// ========================================
+app.get("/api/health", (req, res) => {
+  res.status(200).json({
+    success: true,
+    status: "healthy",
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+  });
+});
+
+
 // API Routes
-// ========================================
+
 
 app.use("/api/auth", authRoutes);
 app.use("/api/projects", projectRoutes);
@@ -99,35 +115,57 @@ app.use("/api/skills", skillRoutes);
 app.use("/api/certificates", certificateRoutes);
 app.use("/api/messages", messageRoutes);
 
-// ========================================
-// Error Middleware
-// ========================================
+
+// Error Handling
+
 
 app.use(notFound);
 app.use(errorHandler);
 
-// ========================================
+
 // Start Server
-// ========================================
+
 
 const PORT = process.env.PORT || 5000;
+
+let server;
 
 const startServer = async () => {
   try {
     await db.execute("SELECT 1");
 
-    console.log("Database connected successfully.");
+    console.log("✅ Database connected successfully.");
 
-    app.listen(PORT, () => {
+    server = app.listen(PORT, () => {
       console.log(
-        `Server running on http://localhost:${PORT}`
+        `🚀 Server running on http://localhost:${PORT}`
       );
     });
   } catch (error) {
-    console.error("Failed to connect to database.");
+    console.error("❌ Failed to connect to database.");
     console.error(error.message);
     process.exit(1);
   }
 };
 
 startServer();
+
+
+// Graceful Shutdown
+
+
+const shutdown = (signal) => {
+  console.log(`\n${signal} received. Shutting down server...`);
+
+  if (server) {
+    server.close(() => {
+      console.log("✅ Server stopped.");
+      process.exit(0);
+    });
+  } else {
+    process.exit(0);
+  }
+};
+
+process.on("SIGINT", () => shutdown("SIGINT"));
+process.on("SIGTERM", () => shutdown("SIGTERM"));

@@ -1,21 +1,45 @@
-# Stage 1: Build React App with Vite
+
+# Stage 1 - Build React Application
+
 FROM node:20-alpine AS builder
+
+LABEL maintainer="Mayuresh Kasar"
+LABEL description="Portfolio App - React + Vite Frontend"
 
 WORKDIR /app
 
+# Install dependencies (better layer caching)
 COPY package*.json ./
-RUN npm install
 
+RUN if [ -f package-lock.json ]; then \
+      npm ci; \
+    else \
+      npm install; \
+    fi
+
+# Copy application source
 COPY . .
+
+ENV NODE_ENV=production
+
+# Build production bundle
 RUN npm run build
 
-# Stage 2: Serve React App with Nginx Production Web Server
-FROM nginx:alpine
 
-# Copy built dist folder from builder stage
+# Stage 2 - Nginx Production Server
+
+FROM nginx:1.27-alpine
+
+# Install timezone data (optional but useful)
+RUN apk add --no-cache tzdata
+
+# Remove default nginx files
+RUN rm -rf /usr/share/nginx/html/*
+
+# Copy production build
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copy custom Nginx configuration
+# Copy custom nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80

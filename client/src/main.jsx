@@ -1,10 +1,20 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
-import App from "./App.jsx";
+
+import App from "./App";
 import "./index.css";
 
-ReactDOM.createRoot(document.getElementById("root")).render(
+// Get the root element
+const rootElement = document.getElementById("root");
+
+// Ensure the root element exists
+if (!rootElement) {
+  throw new Error("Root element with id 'root' was not found.");
+}
+
+// Render the React application
+ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
     <BrowserRouter>
       <App />

@@ -10,7 +10,7 @@ export default function Footer() {
           <div className="text-center md:text-left">
             <h2 className="text-2xl font-bold text-gradient">Mayuresh Kasar</h2>
             <p className="text-sm mt-1 text-gray-400 font-light">
-              Full Stack Developer | React, Node.js & MySQL
+              Full Stack Developer | Building Secure & Scalable Web Applications
             </p>
           </div>
 
@@ -43,7 +43,7 @@ export default function Footer() {
         <div className="border-t border-white/5 my-6" />
 
         <div className="text-center text-sm text-gray-500 flex justify-center items-center gap-2">
-          © {new Date().getFullYear()} Mayuresh Kasar. Built with
+          © {new Date().getFullYear()} © 2026 Mayuresh Kasar. Built with React, Node.js & 
           <Heart size={14} className="text-red-500 inline fill-red-500" />
         </div>
       </div>

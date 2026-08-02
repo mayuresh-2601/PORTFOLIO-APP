@@ -1,53 +1,116 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { Code2 } from "lucide-react";
 import api from "../../api/axios";
 
 export default function Skills() {
   const [skills, setSkills] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    api
-      .get("/skills")
-      .then((res) => setSkills(res.data))
-      .catch((err) => console.error(err))
-      .finally(() => setLoading(false));
+    fetchSkills();
   }, []);
+
+  const fetchSkills = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const { data } = await api.get("/skills");
+
+      setSkills(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error(err);
+      setError("Unable to load skills. Please try again later.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <section className="min-h-screen pt-32 pb-20 px-6">
       <div className="max-w-6xl mx-auto space-y-12">
+        {/* Heading */}
         <div className="text-center space-y-4">
           <h2 className="text-4xl md:text-5xl font-black">
             Technical <span className="text-gradient">Skills</span>
           </h2>
-          <p className="text-gray-400 max-w-xl mx-auto">
-            Technologies, frameworks, and tools I use to bring ideas to life.
+
+          <p className="max-w-2xl mx-auto text-gray-400">
+            A collection of technologies, programming languages, frameworks,
+            databases, and development tools I use to build secure, scalable,
+            and modern web applications.
           </p>
         </div>
 
-        {loading ? (
-          <p className="text-center text-gray-500">Loading skills...</p>
-        ) : (
-          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6">
+        {/* Loading */}
+        {loading && (
+          <div className="py-20 text-center text-gray-400">
+            Loading skills...
+          </div>
+        )}
+
+        {/* Error */}
+        {!loading && error && (
+          <div className="glass-card rounded-2xl border border-red-500/20 p-8 text-center">
+            <h3 className="mb-2 text-xl font-bold text-red-400">
+              Failed to Load Skills
+            </h3>
+
+            <p className="text-gray-400">{error}</p>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!loading && !error && skills.length === 0 && (
+          <div className="glass-card rounded-2xl p-10 text-center">
+            <Code2 size={48} className="mx-auto mb-4 text-sky-400" />
+
+            <h3 className="mb-2 text-2xl font-bold text-white">
+              No Skills Available
+            </h3>
+
+            <p className="text-gray-400">
+              Skills will appear here after being added from the admin dashboard.
+            </p>
+          </div>
+        )}
+
+        {/* Skills Grid */}
+        {!loading && !error && skills.length > 0 && (
+          <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3">
             {skills.map((skill, index) => (
               <motion.div
                 key={skill.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className="glass-card p-6 rounded-2xl space-y-3"
+                transition={{ delay: index * 0.08 }}
+                className="glass-card rounded-2xl p-6"
               >
-                <div className="flex justify-between items-center text-sm font-medium">
-                  <span className="text-white text-base">{skill.name}</span>
-                  <span className="text-sky-400">{skill.level || 80}%</span>
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-white">
+                    {skill.name}
+                  </h3>
+
+                  <span className="font-semibold text-sky-400">
+                    {skill.level ?? 80}%
+                  </span>
                 </div>
-                <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+
+                <div
+                  className="h-2 w-full overflow-hidden rounded-full bg-white/5"
+                  role="progressbar"
+                  aria-label={skill.name}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={skill.level ?? 80}
+                >
                   <motion.div
                     initial={{ width: 0 }}
-                    animate={{ width: `${skill.level || 80}%` }}
-                    transition={{ duration: 1, delay: 0.2 }}
-                    className="h-full bg-gradient-to-r from-sky-400 to-indigo-500 rounded-full"
+                    animate={{ width: `${skill.level ?? 80}%` }}
+                    transition={{ duration: 1 }}
+                    className="h-full rounded-full bg-gradient-to-r from-sky-400 to-indigo-500"
                   />
                 </div>
               </motion.div>

@@ -4,33 +4,42 @@ on:
   push:
     branches:
       - main
+
   pull_request:
     branches:
       - main
 
+permissions:
+  contents: read
+
+concurrency:
+  group: docker-ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  # 1. Lint & Validate Dockerfiles
   dockerfile-lint:
     name: Lint Dockerfiles
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+
     steps:
-      - name: Checkout Code
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Hadolint Dockerfile Linter
+      - name: Lint Server Dockerfile
         uses: hadolint/hadolint-action@v3.1.0
         with:
-          dockerfile: "server/Dockerfile"
+          dockerfile: server/Dockerfile
 
-      - name: Hadolint Client Dockerfile Linter
+      - name: Lint Client Dockerfile
         uses: hadolint/hadolint-action@v3.1.0
         with:
-          dockerfile: "client/Dockerfile"
+          dockerfile: client/Dockerfile
 
-  # 2. Build and Test Container Stack
   build-and-test:
     name: Build & Test Full Stack
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: dockerfile-lint
 
     steps:
@@ -46,36 +55,69 @@ jobs:
       - name: Build Docker Images
         run: docker compose build
 
-      - name: Launch Application Containers
+      - name: Start Containers
         run: docker compose up -d
 
-      - name: Wait for MySQL Health Check
+      - name: Wait for Services
         run: |
-          echo "Waiting for MySQL database container to initialize..."
-          sleep 15
+          echo "Waiting for containers..."
 
-      - name: Test Server API Endpoint
+          for i in {1..12}
+          do
+            if curl -fs http://localhost:5000/api/projects > /dev/null; then
+              echo "Backend is ready."
+              break
+            fi
+
+            echo "Waiting..."
+            sleep 5
+          done
+
+      - name: Test Backend API
         run: |
-          response=$(curl --write-out '%{http_code}' --silent --output /dev/null http://localhost:5000/api/projects)
-          if [ "$response" -eq 200 ] || [ "$response" -eq 404 ]; then
-            echo "API Server is healthy (Status: $response)"
+          STATUS=$(curl \
+            --write-out "%{http_code}" \
+            --silent \
+            --output /dev/null \
+            http://localhost:5000/api/projects)
+
+          if [ "$STATUS" = "200" ] || [ "$STATUS" = "404" ]; then
+            echo "Backend API OK ($STATUS)"
           else
-            echo "API Health Check failed with status $response"
+            echo "Backend API Failed ($STATUS)"
             docker compose logs server
             exit 1
           fi
 
-      - name: Test Client Nginx Endpoint
+      - name: Test Frontend
         run: |
-          response=$(curl --write-out '%{http_code}' --silent --output /dev/null http://localhost:80/)
-          if [ "$response" -eq 200 ]; then
-            echo "Frontend Client is healthy (Status: $response)"
+          STATUS=$(curl \
+            --write-out "%{http_code}" \
+            --silent \
+            --output /dev/null \
+            http://localhost)
+
+          if [ "$STATUS" = "200" ]; then
+            echo "Frontend OK ($STATUS)"
           else
-            echo "Frontend Health Check failed with status $response"
+            echo "Frontend Failed ($STATUS)"
             docker compose logs client
             exit 1
           fi
 
-      - name: Tear Down Stack
+      - name: Upload Logs on Failure
+        if: failure()
+        run: |
+          mkdir logs
+          docker compose logs > logs/docker.log
+
+      - name: Upload Workflow Logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-logs
+          path: logs
+
+      - name: Stop Containers
         if: always()
         run: docker compose down -v

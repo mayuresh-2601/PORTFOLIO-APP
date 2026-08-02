@@ -4,48 +4,87 @@ import {
   deleteCertificate,
 } from "../models/certificateModel.js";
 
-export const fetchCertificates = async (req, res) => {
+/* 
+   Get All Certificates
+ */
+
+export const fetchCertificates = async (req, res, next) => {
   try {
     const certificates = await getCertificates();
-    return res.status(200).json(certificates);
+
+    return res.status(200).json({
+      success: true,
+      count: certificates.length,
+      data: certificates,
+    });
   } catch (error) {
-    return res.status(500).json({ message: "Failed to fetch certificates" });
+    next(error);
   }
 };
 
-export const createCertificate = async (req, res) => {
+/* 
+   Create Certificate
+ */
+
+export const createCertificate = async (req, res, next) => {
   try {
     const { title, issuer, link } = req.body;
 
-    if (!title || !title.trim()) {
-      return res.status(400).json({ message: "Title is required" });
+    if (!title?.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Certificate title is required.",
+      });
     }
 
     const certificate = {
       title: title.trim(),
-      issuer: issuer || "",
+      issuer: issuer?.trim() || "Unknown",
       image: req.file ? req.file.path : null,
-      link: link || "",
+      link: link?.trim() || null,
     };
 
     const result = await addCertificate(certificate);
 
     return res.status(201).json({
       success: true,
-      message: "Certificate added",
-      id: result?.insertId || null,
+      message: "Certificate created successfully.",
+      id: result.id,
     });
   } catch (error) {
-    return res.status(500).json({ message: "Failed to add certificate" });
+    next(error);
   }
 };
 
-export const removeCertificate = async (req, res) => {
+/* 
+   Delete Certificate
+ */
+
+export const removeCertificate = async (req, res, next) => {
   try {
-    const { id } = req.params;
-    await deleteCertificate(id);
-    return res.status(200).json({ success: true, message: "Certificate deleted" });
+    const id = Number(req.params.id);
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid certificate ID.",
+      });
+    }
+
+    const result = await deleteCertificate(id);
+
+    if (!result.affectedRows) {
+      return res.status(404).json({
+        success: false,
+        message: "Certificate not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Certificate deleted successfully.",
+    });
   } catch (error) {
-    return res.status(500).json({ message: "Failed to delete certificate" });
+    next(error);
   }
 };

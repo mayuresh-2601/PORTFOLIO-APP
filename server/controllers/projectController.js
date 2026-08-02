@@ -1,85 +1,161 @@
 import {
   getAllProjects,
+  getProjectById,
   addProject,
-  deleteProject,
   updateProject,
-  getProjectById
+  deleteProject,
 } from "../models/projectModel.js";
 
-export const fetchProjects = async (req, res) => {
+/* 
+   Get All Projects
+ */
+
+export const fetchProjects = async (req, res, next) => {
   try {
     const projects = await getAllProjects();
-    return res.status(200).json(projects);
+
+    return res.status(200).json({
+      success: true,
+      count: projects.length,
+      data: projects,
+    });
   } catch (error) {
-    return res.status(500).json({ message: "Failed to fetch projects" });
+    next(error);
   }
 };
 
-export const createProject = async (req, res) => {
+/* 
+   Create Project
+ */
+
+export const createProject = async (req, res, next) => {
   try {
     const { title, description, github, demo } = req.body;
 
-    if (!title || !description) {
-      return res.status(400).json({ message: "Title & description are required" });
+    if (!title?.trim() || !description?.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Project title and description are required.",
+      });
     }
 
     if (!req.file) {
-      return res.status(400).json({ message: "Image upload is required" });
+      return res.status(400).json({
+        success: false,
+        message: "Project image is required.",
+      });
     }
 
     const project = {
       title: title.trim(),
       description: description.trim(),
-      github: github || "",
-      demo: demo || "",
+      github: github?.trim() || null,
+      demo: demo?.trim() || null,
       image: req.file.path,
     };
 
-    const dbResult = await addProject(project);
+    const result = await addProject(project);
 
     return res.status(201).json({
       success: true,
-      message: "Project added successfully",
-      id: dbResult?.insertId || null,
+      message: "Project created successfully.",
+      id: result.id,
     });
   } catch (error) {
-    return res.status(500).json({ message: "Failed to add project" });
+    next(error);
   }
 };
 
-export const updateProjectById = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { title, description, github, demo } = req.body;
+/* 
+   Update Project
+ */
 
-    let existingProject = await getProjectById(id);
-    if (!existingProject) {
-      return res.status(404).json({ message: "Project not found" });
+export const updateProjectById = async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid project ID.",
+      });
     }
 
-    const imageUrl = req.file ? req.file.path : existingProject.image;
+    const existingProject = await getProjectById(id);
+
+    if (!existingProject) {
+      return res.status(404).json({
+        success: false,
+        message: "Project not found.",
+      });
+    }
 
     const project = {
-      title: title.trim(),
-      description: description.trim(),
-      github: github || "",
-      demo: demo || "",
-      image: imageUrl,
+      title: req.body.title?.trim() || existingProject.title,
+      description:
+        req.body.description?.trim() ||
+        existingProject.description,
+
+      github:
+        req.body.github?.trim() ??
+        existingProject.github,
+
+      demo:
+        req.body.demo?.trim() ??
+        existingProject.demo,
+
+      image: req.file
+        ? req.file.path
+        : existingProject.image,
     };
 
-    await updateProject(id, project);
-    return res.status(200).json({ success: true, message: "Project updated" });
+    const result = await updateProject(id, project);
+
+    if (!result.affectedRows) {
+      return res.status(404).json({
+        success: false,
+        message: "Project not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Project updated successfully.",
+    });
   } catch (error) {
-    return res.status(500).json({ message: "Failed to update project" });
+    next(error);
   }
 };
 
-export const removeProject = async (req, res) => {
+/* 
+   Delete Project
+ */
+
+export const removeProject = async (req, res, next) => {
   try {
-    const { id } = req.params;
-    await deleteProject(id);
-    return res.status(200).json({ success: true, message: "Project deleted" });
+    const id = Number(req.params.id);
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid project ID.",
+      });
+    }
+
+    const result = await deleteProject(id);
+
+    if (!result.affectedRows) {
+      return res.status(404).json({
+        success: false,
+        message: "Project not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Project deleted successfully.",
+    });
   } catch (error) {
-    return res.status(500).json({ message: "Failed to delete project" });
+    next(error);
   }
 };

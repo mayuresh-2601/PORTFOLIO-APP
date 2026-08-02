@@ -38,11 +38,17 @@ export default function About() {
             className="md:col-span-7 space-y-6"
           >
             <h3 className="text-2xl font-bold text-sky-400">
-              Full Stack Engineer
+              Full Stack Developer
             </h3>
 
             <p className="text-gray-300 leading-relaxed font-light">
-              I specialize in developing modern web applications from ideation to deployment[cite: 5, 6]. My focus is on writing maintainable, well-structured code that brings smooth user experiences on the frontend and solid database design on the backend[cite: 5, 6].
+              I'm Mayuresh Kasar, a passionate Full Stack Developer with hands-on experience
+              building secure, responsive, and scalable web applications using React.js,
+              Node.js, Express.js, JavaScript, and MySQL/TiDB. I enjoy designing modern user
+              interfaces, developing RESTful APIs, and creating efficient backend systems
+              following clean architecture principles. I am also familiar with Linux (Ubuntu),
+              Docker fundamentals, Git, and cloud-based deployment, and I'm always eager to
+              learn new technologies while building real-world software solutions.
             </p>
 
             <div className="grid grid-cols-2 gap-4 text-sm pt-2">

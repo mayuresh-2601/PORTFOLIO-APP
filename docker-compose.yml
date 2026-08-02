@@ -1,63 +1,114 @@
+version: "3.9"
+
 services:
-  # 1. MySQL Database Container
+  
+  # MySQL Database
+  
   db:
     image: mysql:8.0
+
     container_name: portfolio_db_container
-    restart: always
+
+    restart: unless-stopped
+
+    env_file:
+      - ./server/.env
+
     environment:
-      MYSQL_ROOT_PASSWORD: root_password_123
-      MYSQL_DATABASE: portfolio_db
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+
     ports:
-      - "3307:3306" # <-- Fixed port to bypass Windows conflict
+      - "3307:3306"
+
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./server/database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+      - ./server/database/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
     networks:
       - portfolio_net
 
-  # 2. Node.js Express Backend API Container
+  
+  # Express Backend
+  
   server:
     build:
       context: ./server
       dockerfile: Dockerfile
+
     container_name: portfolio_server_container
-    restart: always
-    environment:
-      PORT: 5000
-      DB_HOST: db
-      DB_USER: root
-      DB_PASSWORD: root_password_123
-      DB_NAME: portfolio_db
-      DB_PORT: 3306
-      JWT_SECRET: super_secret_jwt_key_2026
-      ADMIN_EMAIL: kasarmayuresh99@gmail.com
-      ADMIN_PASSWORD_HASH: "$$2a$$10$$wTInaDhhzC44QUnmP1s65e8/1Q3U46sI4r5P/.w5Jv6YjE7l7I.8G"
-      CLOUD_NAME: ${CLOUD_NAME:-demo}
-      CLOUD_API_KEY: ${CLOUD_API_KEY:-1234567890}
-      CLOUD_API_SECRET: ${CLOUD_API_SECRET:-secret}
+
+    restart: unless-stopped
+
+    env_file:
+      - ./server/.env
+
     ports:
       - "5000:5000"
+
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--spider",
+          "-q",
+          "http://localhost:5000/api/projects"
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
     networks:
       - portfolio_net
 
-  # 3. React Frontend + Nginx Web Server Container
+  
+  # React + Nginx
+  
   client:
     build:
       context: ./client
       dockerfile: Dockerfile
+
     container_name: portfolio_client_container
-    restart: always
+
+    restart: unless-stopped
+
     ports:
       - "80:80"
+
     depends_on:
-      - server
+      server:
+        condition: service_healthy
+
     networks:
       - portfolio_net
 
+
+# Persistent Volumes
+
 volumes:
   mysql_data:
+
+
+# Networks
 
 networks:
   portfolio_net:

@@ -1,43 +1,101 @@
-import { getSkills, addSkill, deleteSkill } from "../models/skillModel.js";
+import {
+  getSkills,
+  addSkill,
+  deleteSkill,
+} from "../models/skillModel.js";
 
-export const fetchSkills = async (req, res) => {
+/* 
+   Get All Skills
+ */
+
+export const fetchSkills = async (req, res, next) => {
   try {
     const skills = await getSkills();
-    return res.status(200).json(skills || []);
+
+    return res.status(200).json({
+      success: true,
+      count: skills.length,
+      data: skills,
+    });
   } catch (error) {
-    return res.status(500).json({ message: "Failed to fetch skills" });
+    next(error);
   }
 };
 
-export const createSkill = async (req, res) => {
+/* 
+   Create Skill
+ */
+
+export const createSkill = async (req, res, next) => {
   try {
     const { name, level } = req.body;
 
+    // Validate name
     if (!name || !name.trim()) {
-      return res.status(400).json({ message: "Skill name is required" });
+      return res.status(400).json({
+        success: false,
+        message: "Skill name is required.",
+      });
     }
 
-    let skillLevel = parseInt(level);
-    if (isNaN(skillLevel)) skillLevel = 80;
+    // Validate level
+    let skillLevel = Number(level);
 
-    const result = await addSkill(name.trim(), skillLevel);
+    if (Number.isNaN(skillLevel)) {
+      skillLevel = 80;
+    }
+
+    if (skillLevel < 0 || skillLevel > 100) {
+      return res.status(400).json({
+        success: false,
+        message: "Skill level must be between 0 and 100.",
+      });
+    }
+
+    const result = await addSkill(
+      name.trim(),
+      skillLevel
+    );
 
     return res.status(201).json({
       success: true,
-      message: "Skill added successfully",
-      id: result?.insertId || null,
+      message: "Skill created successfully.",
+      id: result.id,
     });
   } catch (error) {
-    return res.status(500).json({ message: "Failed to add skill" });
+    next(error);
   }
 };
 
-export const removeSkill = async (req, res) => {
+/* 
+   Delete Skill
+ */
+
+export const removeSkill = async (req, res, next) => {
   try {
-    const { id } = req.params;
-    await deleteSkill(id);
-    return res.status(200).json({ success: true, message: "Skill deleted" });
+    const id = Number(req.params.id);
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid skill ID.",
+      });
+    }
+
+    const result = await deleteSkill(id);
+
+    if (!result.affectedRows) {
+      return res.status(404).json({
+        success: false,
+        message: "Skill not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Skill deleted successfully.",
+    });
   } catch (error) {
-    return res.status(500).json({ message: "Failed to delete skill" });
+    next(error);
   }
 };

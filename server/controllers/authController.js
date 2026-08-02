@@ -1,9 +1,16 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
-export const login = async (req, res) => {
+/* 
+   Admin Login
+ */
+
+export const login = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    let { email, password } = req.body;
+
+    email = email?.trim().toLowerCase();
+    password = password?.trim();
 
     // Validate request
     if (!email || !password) {
@@ -13,13 +20,24 @@ export const login = async (req, res) => {
       });
     }
 
-    const adminEmail = (process.env.ADMIN_EMAIL || "").trim().toLowerCase();
-    const adminPasswordHash = (process.env.ADMIN_PASSWORD_HASH || "").trim();
+    const adminEmail = (process.env.ADMIN_EMAIL || "")
+      .trim()
+      .toLowerCase();
+
+    const adminPasswordHash = (
+      process.env.ADMIN_PASSWORD_HASH || ""
+    ).trim();
+
     const jwtSecret = process.env.JWT_SECRET;
 
-    // Ensure server is properly configured
+    const jwtExpiry =
+      process.env.JWT_EXPIRES_IN || "7d";
+
+    // Validate environment variables
     if (!adminEmail || !adminPasswordHash || !jwtSecret) {
-      console.error("Missing required authentication environment variables.");
+      console.error(
+        "Authentication environment variables are missing."
+      );
 
       return res.status(500).json({
         success: false,
@@ -28,7 +46,7 @@ export const login = async (req, res) => {
     }
 
     // Verify email
-    if (email.trim().toLowerCase() !== adminEmail) {
+    if (email !== adminEmail) {
       return res.status(401).json({
         success: false,
         message: "Invalid email or password.",
@@ -36,12 +54,12 @@ export const login = async (req, res) => {
     }
 
     // Verify password
-    const isMatch = await bcrypt.compare(
-      password.trim(),
+    const passwordMatch = await bcrypt.compare(
+      password,
       adminPasswordHash
     );
 
-    if (!isMatch) {
+    if (!passwordMatch) {
       return res.status(401).json({
         success: false,
         message: "Invalid email or password.",
@@ -56,7 +74,9 @@ export const login = async (req, res) => {
       },
       jwtSecret,
       {
-        expiresIn: "7d",
+        expiresIn: jwtExpiry,
+        issuer: "portfolio-api",
+        audience: "portfolio-admin",
       }
     );
 
@@ -64,13 +84,17 @@ export const login = async (req, res) => {
       success: true,
       message: "Login successful.",
       token,
+      expiresIn: jwtExpiry,
+      user: {
+        email: adminEmail,
+        role: "admin",
+      },
     });
   } catch (error) {
-    console.error("Login Error:", error);
+    if (process.env.NODE_ENV !== "production") {
+      console.error("Login Error:", error);
+    }
 
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error.",
-    });
+    next(error);
   }
 };
