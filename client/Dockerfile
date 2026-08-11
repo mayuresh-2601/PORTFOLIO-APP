@@ -30,11 +30,10 @@ RUN npm run build
 
 FROM nginx:1.27-alpine
 
-# Install timezone data (optional but useful)
-RUN apk add --no-cache tzdata
-
-# Remove default nginx files
-RUN rm -rf /usr/share/nginx/html/*
+# Install timezone data and clear default nginx files in a single layer.
+# hadolint ignore=DL3018
+RUN apk add --no-cache tzdata \
+    && rm -rf /usr/share/nginx/html/*
 
 # Copy production build
 COPY --from=builder /app/dist /usr/share/nginx/html
