@@ -11,6 +11,8 @@ import projectRoutes from "./routes/projectRoutes.js";
 import skillRoutes from "./routes/skillRoutes.js";
 import certificateRoutes from "./routes/certificateRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
+import aiRoutes from "./routes/aiRoutes.js";
+import systemRoutes from "./routes/systemRoutes.js";
 
 import {
   errorHandler,
@@ -114,6 +116,8 @@ app.use("/api/projects", projectRoutes);
 app.use("/api/skills", skillRoutes);
 app.use("/api/certificates", certificateRoutes);
 app.use("/api/messages", messageRoutes);
+app.use("/api/ai", aiRoutes);
+app.use("/api/system", systemRoutes);
 
 
 // Error Handling

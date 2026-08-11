@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ExternalLink, Award } from "lucide-react";
+import { ExternalLink, Award, Sparkles } from "lucide-react";
 import api from "../../api/axios";
+import AIExplainModal from "../../components/common/AIExplainModal";
 
 export default function Certificates() {
   const [certificates, setCertificates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [activeCert, setActiveCert] = useState(null);
 
   useEffect(() => {
     fetchCertificates();
@@ -117,9 +119,17 @@ export default function Certificates() {
                     {cert.issuer}
                   </div>
 
-                  <h3 className="text-xl font-bold text-white">
+                  <button
+                    onClick={() => setActiveCert(cert)}
+                    className="group flex items-center gap-2 text-left text-xl font-bold text-white transition hover:text-sky-400"
+                    title="Ask AI to explain this certificate"
+                  >
                     {cert.title}
-                  </h3>
+                    <Sparkles
+                      size={14}
+                      className="text-sky-400 opacity-0 transition group-hover:opacity-100"
+                    />
+                  </button>
                 </div>
 
                 {cert.link && (
@@ -138,6 +148,14 @@ export default function Certificates() {
           </div>
         )}
       </div>
+
+      <AIExplainModal
+        open={!!activeCert}
+        onClose={() => setActiveCert(null)}
+        title={activeCert ? activeCert.title : ""}
+        endpoint="/ai/explain-certificate"
+        payload={activeCert ? { title: activeCert.title, issuer: activeCert.issuer } : {}}
+      />
     </section>
   );
 }

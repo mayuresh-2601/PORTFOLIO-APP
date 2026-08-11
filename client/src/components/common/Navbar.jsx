@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Home, User, Code, Folder, Award, Mail, Shield, Menu, X } from "lucide-react";
+import { Home, User, Code, Folder, Award, Mail, Shield, Menu, X, Activity } from "lucide-react";
 
 const navLinks = [
   { name: "Home", path: "/", icon: Home },
@@ -9,6 +9,7 @@ const navLinks = [
   { name: "Skills", path: "/skills", icon: Code },
   { name: "Projects", path: "/projects", icon: Folder },
   { name: "Certificates", path: "/certificates", icon: Award },
+  { name: "System", path: "/system", icon: Activity },
   { name: "Contact", path: "/contact", icon: Mail },
 ];
 

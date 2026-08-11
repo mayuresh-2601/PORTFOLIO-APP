@@ -1,263 +1,431 @@
-# Portfolio App 
+<div align="center">
 
-A complete and practical README for the Full Stack Portfolio Management System (React + Vite frontend, Express backend).
+# Mayuresh Kasar — Portfolio App
+
+**A production-grade full-stack portfolio with AI-powered explanations and a live DevOps monitoring panel.**
+
+[![Live Site](https://img.shields.io/badge/Live-Vercel-black?style=flat-square&logo=vercel)](https://portfolio-app-tau-lac.vercel.app/)
+[![Backend](https://img.shields.io/badge/API-Render-46E3B7?style=flat-square&logo=render)](https://portfolio-app-mmlr.onrender.com)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](#license)
+[![Node](https://img.shields.io/badge/Node-%3E%3D20-339933?style=flat-square&logo=node.js)](https://nodejs.org)
+
+[Live Demo](https://portfolio-app-tau-lac.vercel.app/) · [Report a Bug](https://github.com/mayuresh-2601/PORTFOLIO-APP/issues) · [Request a Feature](https://github.com/mayuresh-2601/PORTFOLIO-APP/issues)
+
+</div>
 
 ---
 
-## Live Deployments
+## Table of Contents
 
-- Vercel (Client): https://portfolio-app-tau-lac.vercel.app/
-- Render (Backend): https://portfolio-app-mmlr.onrender.com
-- GitHub: https://github.com/mayuresh-2601/PORTFOLIO-APP
+- [Overview](#overview)
+- [Screenshots](#screenshots)
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Architecture](#architecture)
+- [Quick Start](#quick-start)
+- [Environment Variables](#environment-variables)
+- [Database Schema](#database-schema)
+- [API Reference](#api-reference)
+- [Docker](#docker)
+- [Deployment](#deployment)
+- [Troubleshooting](#troubleshooting)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+- [Author & License](#author--license)
 
 ---
 
-## Project Summary
+## Overview
 
-This repository contains two main apps:
+This repository is a full-stack developer portfolio — not a static template, but a real application with its own backend, database, authentication, and admin dashboard. It's built to demonstrate the same engineering practices used in production software:
 
+- **`client/`** — React 18 + Vite public site and admin UI
+- **`server/`** — Node.js + Express REST API with JWT auth, file uploads, and email
+- **AI layer** — Google Gemini-powered explanations and a live Q&A assistant, so visitors don't just read a skill list, they can ask about it
+- **DevOps proof, not claims** — a `/system` page shows real, live server metrics (CPU, memory, uptime, environment) pulled from the actual deployed backend, not hardcoded numbers
 
+---
 
-- `client/` — React 18 + Vite frontend (public portfolio + admin UI)
-- `server/` — Node.js + Express backend (REST API, authentication, uploads)
+## Screenshots
 
-Features:
+> Add your screenshots to `docs/screenshots/` using the filenames below, and they'll render automatically here.
 
-- JWT-based admin authentication
-- CRUD for projects, skills, and certificates
-- Cloudinary image uploads via backend
+| Home | Skills — AI Explain |
+|---|---|
+| ![Home page](docs/screenshots/home.png) | ![AI explaining a skill](docs/screenshots/skills-ai-explain.png) |
+
+| Certificates | Live System Panel |
+|---|---|
+| ![Certificates page](docs/screenshots/certificates.png) | ![Live system monitoring panel](docs/screenshots/system-panel.png) |
+
+| Admin Dashboard | Mobile View |
+|---|---|
+| ![Admin dashboard](docs/screenshots/admin-dashboard.png) | ![Mobile responsive view](docs/screenshots/mobile-view.png) |
+
+<details>
+<summary><strong>How to add your own screenshots</strong></summary>
+
+1. Take screenshots of each page (browser DevTools device toolbar works well for the mobile shot)
+2. Save them into `docs/screenshots/` using the exact filenames referenced above
+3. Commit and push — GitHub renders them automatically in this README
+
+```bash
+mkdir -p docs/screenshots
+# move your screenshots into docs/screenshots/ with the names above
+git add docs/screenshots
+git commit -m "Add README screenshots"
+git push
+```
+
+</details>
+
+---
+
+## Features
+
+### Public site
+- Responsive, animated UI (Framer Motion) with a dark glassmorphism design
+- Projects, Skills, Certificates, About, and Contact pages backed by the database — not hardcoded
 - Contact form that stores messages and sends email notifications
-- MySQL / TiDB-compatible persistent storage
+
+### AI-powered explanations *(new)*
+- Click any skill or certificate to get a short, plain-language explanation generated on demand by **Google Gemini** (`gemini-1.5-flash`)
+- **Ask AI About Me** chat on the `/system` page — visitors can ask questions like *"what DevOps skills does he have?"* and get an answer grounded in real listed skills, not hallucinated claims
+- Per-IP rate limiting on all AI endpoints to prevent abuse of the paid API
+
+### Live System panel *(new)*
+- Real-time CPU load, memory usage, uptime, and Docker/bare-Node environment detection — read live from the actual running server via Node's `os`, `fs`, and `child_process` modules
+- Terminal-style live log panel that appends real metric lines every 5 seconds
+- This page exists specifically to prove Linux/DevOps skills with live evidence instead of a resume bullet point
+
+### Admin dashboard
+- JWT-authenticated admin login
+- Full CRUD for projects, skills, and certificates
+- Cloudinary-backed image uploads
 
 ---
 
-## Table Of Contents
+## Tech Stack
 
-- Live Deployments
-- Quick Local Setup
-- Environment Variables (examples)
-- Database: schema & sample
-- Available npm scripts
-- API Reference (examples)
-- Deployment notes (Vercel + Render)
-- Troubleshooting
-- Contributing & License
+| Layer | Technology |
+|---|---|
+| Frontend | React 18, Vite 6, Tailwind CSS v4, Framer Motion, Lucide Icons |
+| Backend | Node.js, Express 5 (ES Modules) |
+| Database | MySQL-compatible — TiDB Cloud |
+| Auth | JWT + bcrypt |
+| File Storage | Cloudinary |
+| Email | Nodemailer |
+| AI | Google Gemini API (`gemini-1.5-flash`) |
+| Deployment | Vercel (frontend) · Render (backend) |
+| Containerization | Docker + Docker Compose |
 
 ---
 
-## Quick Local Setup (detailed)
+## Architecture
 
-1) Clone repository
+```
+                        ┌─────────────────────┐
+                        │      Visitor         │
+                        └──────────┬───────────┘
+                                   │ HTTPS
+                        ┌──────────▼───────────┐
+                        │   Vercel (Client)     │
+                        │   React + Vite SPA    │
+                        └──────────┬───────────┘
+                                   │ REST API (axios)
+                        ┌──────────▼───────────┐
+                        │   Render (Backend)    │
+                        │   Node.js + Express   │
+                        ├───────────────────────┤
+                        │ /api/projects         │
+                        │ /api/skills           │
+                        │ /api/certificates     │
+                        │ /api/messages         │
+                        │ /api/auth             │
+                        │ /api/ai/*    (Gemini) │──────► Google Gemini API
+                        │ /api/system  (live)   │──────► os / fs / child_process
+                        └──────────┬───────────┘
+                                   │ mysql2
+                        ┌──────────▼───────────┐
+                        │   TiDB Cloud (DB)     │
+                        └───────────────────────┘
+```
+
+---
+
+## Quick Start
+
+### Prerequisites
+- Node.js **≥ 20**
+- npm
+- A TiDB Cloud (or MySQL-compatible) database
+- A free [Google Gemini API key](https://aistudio.google.com/app/apikey)
+- Cloudinary account (for image uploads)
+
+### 1. Clone
 
 ```bash
 git clone https://github.com/mayuresh-2601/PORTFOLIO-APP.git
 cd PORTFOLIO-APP
 ```
 
-2) Backend (server)
+### 2. Backend
 
 ```bash
 cd server
 npm install
-# add server/.env (example below)
+cp .env.example .env      # then fill in your real values
 npm run dev
 ```
 
-Common backend scripts (run from `server/`):
+Runs on **http://localhost:5000**. You should see:
+```
+✅ Database connected successfully.
+🚀 Server running on http://localhost:5000
+```
 
-- `npm run dev` — starts the server with `nodemon` (development)
-- `npm start` — production start
+### 3. Frontend
 
-3) Frontend (client)
+Open a **new terminal**:
 
 ```bash
-cd ../client
+cd client
 npm install
-# add client/.env (example below)
+```
+
+Edit `client/.env` and set it to point at your **local** backend during development:
+
+```env
+VITE_API_BASE_URL=http://localhost:5000
+```
+
+```bash
 npm run dev
 ```
 
-Common frontend scripts (run from `client/`):
+Runs on **http://localhost:5173**.
 
-- `npm run dev` — starts Vite dev server
-- `npm run build` — builds the production bundle
-- `npm run preview` — preview built site
-
-Access after startup:
-
-- Frontend: http://localhost:5173
-- Backend: http://localhost:5000
+> ⚠️ Before deploying, switch `client/.env` back to your production backend URL (see [Deployment](#deployment)).
 
 ---
 
-## Environment Variables (examples)
+## Environment Variables
 
-Create `server/.env` with:
+### `server/.env`
 
 ```env
 PORT=5000
-DB_HOST=<your-db-host>
+CLIENT_URL=http://localhost:5173
+
+DB_HOST=your-tidb-host
 DB_PORT=4000
-DB_USER=<db-user>
-DB_PASSWORD=<db-password>
+DB_USER=your-db-user
+DB_PASSWORD=your-db-password
 DB_NAME=portfolio
 
-JWT_SECRET=<a-strong-secret>
+JWT_SECRET=replace-with-a-long-random-string
 
-CLOUD_NAME=<cloudinary-cloud-name>
-CLOUD_API_KEY=<cloudinary-api-key>
-CLOUD_API_SECRET=<cloudinary-api-secret>
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD_HASH=replace-with-bcrypt-hash
 
-EMAIL_USER=<email-for-sending>
-EMAIL_PASS=<email-app-password-or-api-key>
+CLOUD_NAME=your-cloudinary-cloud-name
+CLOUD_API_KEY=your-cloudinary-api-key
+CLOUD_API_SECRET=your-cloudinary-api-secret
+
+EMAIL_USER=your-email@gmail.com
+EMAIL_PASS=your-email-app-password
+
+# Powers "Explain with AI" and "Ask about me" — get a free key at
+# https://aistudio.google.com/app/apikey
+GEMINI_API_KEY=your-gemini-api-key-here
 ```
 
-Create `client/.env` with:
+### `client/.env`
 
 ```env
-VITE_API_URL=http://localhost:5000
+# Local development
+VITE_API_BASE_URL=http://localhost:5000
+
+# Production (use this when deploying)
+# VITE_API_BASE_URL=https://your-backend.onrender.com
 ```
 
-Notes:
-
-- Never commit real secrets. Use placeholders in docs and add `.env` to `.gitignore`.
+**Never commit real secrets.** Both `.env` files are already listed in `.gitignore` — only `.env.example` (with placeholders) should ever be committed.
 
 ---
 
-## Database: schema & sample
+## Database Schema
 
-Run the SQL in your MySQL/TiDB instance to create core tables (example simplified):
+Run against your TiDB Cloud / MySQL instance:
 
 ```sql
 CREATE TABLE projects (
-	id INT AUTO_INCREMENT PRIMARY KEY,
-	title VARCHAR(255) NOT NULL,
-	description TEXT,
-	github VARCHAR(512),
-	demo VARCHAR(512),
-	image VARCHAR(1024),
-	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  github VARCHAR(512),
+  demo VARCHAR(512),
+  image VARCHAR(1024),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE skills (
-	id INT AUTO_INCREMENT PRIMARY KEY,
-	name VARCHAR(128) NOT NULL,
-	level INT DEFAULT 0
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(128) NOT NULL,
+  level INT DEFAULT 0
+);
+
+CREATE TABLE certificates (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  issuer VARCHAR(255),
+  link VARCHAR(512),
+  image VARCHAR(1024),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE messages (
-	id INT AUTO_INCREMENT PRIMARY KEY,
-	name VARCHAR(255),
-	email VARCHAR(255),
-	message TEXT,
-	file_url VARCHAR(1024),
-	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(255),
+  email VARCHAR(255),
+  message TEXT,
+  file_url VARCHAR(1024),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
 ---
 
-## API Reference (examples)
+## API Reference
 
 Base URL (development): `http://localhost:5000/api`
 
-1) Admin login
+### Auth
 
-POST /api/auth/login
+**`POST /api/auth/login`**
+```json
+{ "email": "admin@example.com", "password": "your_password" }
+```
+→ `{ "success": true, "token": "<JWT>" }`
 
-Request body (JSON):
+### Projects / Skills / Certificates
 
+**`GET /api/projects`** · **`GET /api/skills`** · **`GET /api/certificates`** — public, return arrays of records
+
+**`POST /api/projects`** *(protected — `Authorization: Bearer <JWT>`, multipart/form-data)*
+Fields: `title`, `description`, `github`, `demo`, `image`
+
+### Contact
+
+**`POST /api/messages`** — Fields: `name`, `email`, `message`, optional `file`
+
+### AI *(new)*
+
+**`POST /api/ai/explain-skill`**
+```json
+{ "name": "Docker", "level": 75 }
+```
+→ `{ "success": true, "explanation": "..." }`
+
+**`POST /api/ai/explain-certificate`**
+```json
+{ "title": "AWS Certified Developer", "issuer": "Amazon" }
+```
+
+**`POST /api/ai/ask-about-me`**
+```json
+{ "question": "What DevOps skills does he have?" }
+```
+→ `{ "success": true, "answer": "..." }`
+
+Rate limited to ~10 requests/minute per IP. Returns `429` if exceeded, `502` if `GEMINI_API_KEY` is missing or the Gemini API errors.
+
+### System *(new)*
+
+**`GET /api/system`** — public, no rate limit (no external API cost)
 ```json
 {
-	"email": "admin@example.com",
-	"password": "your_password"
+  "success": true,
+  "data": {
+    "host": { "hostname": "...", "platform": "linux", "uptimeSeconds": 1234 },
+    "cpu": { "cores": 2, "loadPercent": 14.2 },
+    "memory": { "usedMB": 320, "totalMB": 2048, "usedPercent": 15.6 },
+    "docker": { "runningInContainer": false },
+    "git": { "commit": "a1b2c3d", "branch": "main" }
+  }
 }
 ```
 
-Success response:
-
-```json
-{
-	"success": true,
-	"message": "Login successful",
-	"token": "<JWT>"
-}
-```
-
-2) Create a project (protected, multipart/form-data)
-
-POST /api/projects
-
-Headers: `Authorization: Bearer <JWT>`
-
-Form fields: `title`, `description`, `github`, `demo`, `image` (file)
-
-3) Get all projects
-
-GET /api/projects
-
-Response: array of project objects
-
-4) Send contact message
-
-POST /api/messages
-
-Form fields: `name`, `email`, `message`, optional `file`
-
-For full route listings and validation, check `server/routes` and `server/controllers`.
+Full route definitions: `server/routes/` · Full controller logic: `server/controllers/`
 
 ---
 
-## Deployment Notes
+## Docker
 
-Deploying frontend to Vercel
+Local containerized development:
 
-- Create a new Vercel project pointing at the `client/` folder.
-- Build command: `npm run build`
-- Output directory: `dist`
-- Add `VITE_API_URL` environment variable in Vercel (point to your backend production URL).
+```bash
+docker compose up --build
+```
 
-Deploying backend to Render (example)
+This starts the frontend, backend, and (if configured) a reverse proxy together. See `docker-compose.yml` at the repo root for exact service definitions.
 
-- Create a new Web Service on Render.
-- Connect repo and set the root to `server/`.
-- Start command: `npm start` (ensure `PORT` is configured via Render environment settings).
-- Add environment variables from `server/.env` (DB, Cloudinary, JWT_SECRET, EMAIL_*).
+---
 
-Docker
+## Deployment
 
-- The repo includes Docker configuration that can be used with `docker compose up --build`.
+### Frontend → Vercel
+1. Import the repo, set the project root to `client/`
+2. Build command: `npm run build` · Output directory: `dist`
+3. Add environment variable `VITE_API_BASE_URL` = your Render backend URL
+
+### Backend → Render
+1. New Web Service, root set to `server/`
+2. Build command: `npm install` · Start command: `npm start`
+3. Add **all** variables from `server/.env.example` in the Render dashboard, with real values — including `GEMINI_API_KEY`
+4. Confirm `CLIENT_URL` is set to your **production** Vercel URL (not `localhost`), so CORS allows the live frontend
+
+After deploying, visit `/system` on your live site — if it shows real, changing numbers, both the deployment and the DevOps monitoring feature are working correctly.
 
 ---
 
 ## Troubleshooting
 
-- Port conflicts: change `PORT` in `server/.env` and update `VITE_API_URL` locally.
-- DB connection errors: verify host, port, user, password, and allowlist network.
-- Image upload failures: verify Cloudinary credentials and the upload middleware logs.
-- Email sending failures: ensure `EMAIL_USER` and `EMAIL_PASS` are correct and service allows SMTP.
+| Symptom | Likely cause | Fix |
+|---|---|---|
+| `'vite' is not recognized` / `'nodemon' is not recognized` | `npm install` wasn't run (or didn't finish) in that folder | Run `npm install` in `client/` and `server/` separately, wait for it to finish, then `npm run dev` |
+| `/system` says "Live metrics unavailable" | `client/.env`'s `VITE_API_BASE_URL` doesn't match a running backend | Point it at `http://localhost:5000` for local dev, or your real Render URL in production — then restart the client |
+| AI explain modal shows an error | `GEMINI_API_KEY` missing/invalid on the backend | Add a real key from [Google AI Studio](https://aistudio.google.com/app/apikey) to `server/.env` (local) or Render's environment variables (production) |
+| CORS errors in browser console | `CLIENT_URL` in `server/.env` doesn't match the frontend's actual origin | Set it to exactly `http://localhost:5173` (dev) or your Vercel URL (prod) — no trailing slash mismatch |
+| DB connection errors | Wrong host/port/credentials, or TiDB Cloud IP allowlist blocking Render | Double-check `server/.env` DB values; in TiDB Cloud, allow connections from `0.0.0.0/0` or Render's IP range |
+| Image upload failures | Bad Cloudinary credentials | Verify `CLOUD_NAME`, `CLOUD_API_KEY`, `CLOUD_API_SECRET` |
+| Email not sending | Wrong `EMAIL_USER`/`EMAIL_PASS`, or provider blocking SMTP | Use an app-specific password, not your regular email password |
 
-Logs: check server console (`npm run dev`) for stack traces.
+Check the server terminal (`npm run dev` in `server/`) for full stack traces on any backend error.
+
+---
+
+## Roadmap
+
+- [ ] WebSocket-based live push for `/system` instead of polling
+- [ ] CI/CD pipeline via GitHub Actions (build + test on every push)
+- [ ] Deploy a second instance to a raw Linux VM (EC2/Oracle Cloud) behind Nginx, as a DevOps deep-dive companion project
+- [ ] Dark/light theme toggle
 
 ---
 
 ## Contributing
 
-- Fork the repository and open a PR. Follow branch naming conventions: `feature/*`, `bugfix/*`.
-- Run linters and tests (if present) before submitting.
-
----
-
-
-
-- Vercel: https://portfolio-app-tau-lac.vercel.app/
-- Render: https://portfolio-app-mmlr.onrender.com
-- GitHub: https://github.com/mayuresh-2601/PORTFOLIO-APP
+1. Fork the repository
+2. Create a branch: `git checkout -b feature/your-feature`
+3. Commit your changes with a clear message
+4. Open a pull request
 
 ---
 
 ## Author & License
 
-Mayuresh Kasar — Full Stack Developer
+**Mayuresh Kasar** — Full-Stack Developer
+[LinkedIn](https://linkedin.com/in/mayuresh2601) · [GitHub](https://github.com/mayuresh-2601) · [Live Site](https://portfolio-app-tau-lac.vercel.app/)
 
-License: MIT
+Licensed under the [MIT License](LICENSE).

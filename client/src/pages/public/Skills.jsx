@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Code2 } from "lucide-react";
+import { Code2, Sparkles } from "lucide-react";
 import api from "../../api/axios";
+import AIExplainModal from "../../components/common/AIExplainModal";
 
 export default function Skills() {
   const [skills, setSkills] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [activeSkill, setActiveSkill] = useState(null);
 
   useEffect(() => {
     fetchSkills();
@@ -107,9 +109,17 @@ export default function Skills() {
                 className="glass-card rounded-2xl p-6"
               >
                 <div className="mb-4 flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-white">
+                  <button
+                    onClick={() => setActiveSkill(skill)}
+                    className="group flex items-center gap-2 text-left text-lg font-semibold text-white transition hover:text-sky-400"
+                    title="Ask AI to explain this skill"
+                  >
                     {skill.name}
-                  </h3>
+                    <Sparkles
+                      size={14}
+                      className="text-sky-400 opacity-0 transition group-hover:opacity-100"
+                    />
+                  </button>
 
                   <span className="font-semibold text-sky-400">
                     {skill.level ?? 80}%
@@ -138,6 +148,14 @@ export default function Skills() {
           </div>
         )}
       </div>
+
+      <AIExplainModal
+        open={!!activeSkill}
+        onClose={() => setActiveSkill(null)}
+        title={activeSkill ? `What is ${activeSkill.name}?` : ""}
+        endpoint="/ai/explain-skill"
+        payload={activeSkill ? { name: activeSkill.name, level: activeSkill.level } : {}}
+      />
     </section>
   );
 }

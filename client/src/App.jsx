@@ -10,6 +10,7 @@ import Skills from "./pages/public/Skills";
 import Projects from "./pages/public/Projects";
 import Certificates from "./pages/public/Certificates";
 import Contact from "./pages/public/Contact";
+import System from "./pages/public/System";
 
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -57,6 +58,7 @@ export default function App() {
           <Route path="/skills" element={<Skills />} />
           <Route path="/projects" element={<Projects />} />
           <Route path="/certificates" element={<Certificates />} />
+          <Route path="/system" element={<System />} />
           <Route path="/contact" element={<Contact />} />
 
           {/* Admin Routes */}
