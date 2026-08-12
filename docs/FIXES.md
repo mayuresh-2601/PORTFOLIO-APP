@@ -6,6 +6,82 @@ real server boot test) — not guessed or assumed.
 
 ---
 
+## 🔴 Critical — found this round (round 4)
+
+### 7. `schema.sql` created tables in the wrong database
+**What was wrong:** the init script explicitly ran:
+```sql
+CREATE DATABASE IF NOT EXISTS portfolio_db ...
+USE portfolio_db;
+```
+before creating any tables. But nothing else in the project uses a database literally
+named `portfolio_db` — the actual database name is whatever `DB_NAME` is set to (e.g.
+`portfolio_ci` in CI, or your real TiDB Cloud database name in production). Docker's
+MySQL entrypoint already creates and switches into the `MYSQL_DATABASE`-named database
+automatically before running any `/docker-entrypoint-initdb.d/` script — this file was
+overriding that with its own, different, hardcoded database. Result: all 5 tables got
+created in an empty, unused `portfolio_db` database, while the actual `portfolio_ci`
+database the app queries stayed completely empty — exactly matching your log's
+`Table 'portfolio_ci.projects' doesn't exist`.
+
+**Fix:** removed the `CREATE DATABASE` + `USE` lines entirely. The script now creates
+tables directly in whatever database MySQL's entrypoint already selected — correct in
+every environment (CI, local Docker, or if ever pointed at a fresh instance) without any
+hardcoded name.
+
+*(Your live production TiDB Cloud database already has its own real tables and data,
+provisioned separately/manually before this session — this bug specifically affects the
+CI docker-compose smoke test's fresh, ephemeral database, not your live site.)*
+
+---
+
+### 8. CI's dummy `ADMIN_PASSWORD_HASH` broke Docker Compose's env-file interpolation
+**What was wrong:** the placeholder value mimicked real bcrypt hash formatting
+(`$2a$10$...`), which is exactly the syntax Docker Compose's `.env`-parsing engine reads
+as variable-substitution syntax (`$VARNAME`). Your log's odd warnings —
+`The "CIu8lY1uRz...XXXX" variable is not set. Defaulting to a blank string` — are Compose
+literally trying to substitute a variable named after the tail end of that fake hash,
+and silently blanking it out.
+
+**Fix:** replaced it with a plain placeholder string containing no `$` characters at
+all — the CI smoke test never actually validates this hash against a real login, so it
+doesn't need to look like a real bcrypt hash, just be present and non-empty.
+
+**Verified:** re-extracted the exact generated bash script from the YAML and re-ran it —
+confirmed the value written to `server/.env` now contains zero `$` characters.
+
+---
+
+## 🔴 Critical — found this round (round 3)
+
+### 6. `gemini-2.5-flash` was also closed off — Google retired two model lines in one week
+**What happened:** after fixing round 2 (retiring `gemini-1.5-flash` → `gemini-2.5-flash`)
+and confirming via your Render logs that the fix *did* deploy correctly, Google closed
+the entire **2.5 line** to new API keys/projects too — a separate, more recent change.
+The error was specific: `"This model models/gemini-2.5-flash is no longer available to
+new users."`
+
+**Fix:** switched to `gemini-3.5-flash-lite` — confirmed via multiple current sources
+(Google's own docs, third-party API proxies, dev guides, all dated within the last few
+weeks) to be a currently GA, low-cost model accessible to new projects.
+
+**Two related fixes bundled in, found while researching this:**
+- Removed the `temperature` sampling parameter — deprecated on all Gemini 3.x models as
+  of this generation
+- Fixed response parsing: Gemini 3.x models can attach a `thoughtSignature`-only part
+  with no `text` field *before* the actual answer in the `parts` array. The old code read
+  `parts[0].text` only, which could silently return `undefined` even on a fully successful
+  API call. Now joins every part that has a `text` field, matching Google's own documented
+  parsing pattern for 3.x responses.
+
+**Verified:** `node --check` passes. **Not verified:** an actual live call with your real
+key (still don't have it) — but this is now the third round tracing the exact real error
+message from your Render logs each time, so confidence is high. If Google closes this
+model too, the fix pattern is now well-established: check
+https://ai.google.dev/gemini-api/docs/models, swap the `GEMINI_MODEL` string, redeploy.
+
+---
+
 ## 🔴 Critical — found this round (round 2)
 
 ### 5. Gemini model `gemini-1.5-flash` was retired by Google

@@ -76,7 +76,7 @@ jobs:
           JWT_SECRET=ci_test_jwt_secret_not_for_production
 
           ADMIN_EMAIL=admin@example.com
-          ADMIN_PASSWORD_HASH=$2a$10$CIu8lY1uRzOnlyForTestingXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+          ADMIN_PASSWORD_HASH=ci_test_admin_password_hash_placeholder_not_a_real_bcrypt_hash
 
           CLOUD_NAME=ci-test
           CLOUD_API_KEY=ci-test-key
