@@ -1,14 +1,18 @@
 // server/services/aiService.js
 //
 // Thin wrapper around the Google Gemini API (Generative Language API).
-// Uses gemini-1.5-flash — Google's fast/cheap model, the right choice for
-// short "explain this in plain English" calls rather than a heavier model.
 
-// gemini-1.5-flash was retired by Google — this is a current, supported
-// fast/cheap model as of mid-2026. If Google retires this one too in the
-// future, check https://ai.google.dev/gemini-api/docs/models for the
-// current model list and swap the string below.
-const GEMINI_MODEL = "gemini-2.5-flash";
+// Google closed the entire gemini-1.5 AND gemini-2.5 model lines to new
+// API keys/projects (as of mid-2026) — both retirements happened within
+// days of each other. gemini-3.5-flash-lite is the current GA, low-cost,
+// low-latency model confirmed accessible to new projects. The
+// generateContent endpoint itself is still fully supported by Google
+// (they've since introduced a newer "Interactions API" as the long-term
+// recommended path, but generateContent is not deprecated — it's just no
+// longer the *default* recommendation for new projects). If this model
+// also gets closed off in the future, check
+// https://ai.google.dev/gemini-api/docs/models for the current list.
+const GEMINI_MODEL = "gemini-3.5-flash-lite";
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 const SYSTEM_PROMPT = `You are an assistant embedded in Mayuresh Kasar's developer portfolio website.
@@ -45,7 +49,8 @@ async function callGemini(userMessage, { maxOutputTokens = 300 } = {}) {
       ],
       generationConfig: {
         maxOutputTokens,
-        temperature: 0.6,
+        // Note: temperature/top_p/top_k are deprecated on Gemini 3.x
+        // models as of mid-2026 — intentionally omitted here.
       },
     }),
   });
@@ -56,7 +61,16 @@ async function callGemini(userMessage, { maxOutputTokens = 300 } = {}) {
   }
 
   const data = await response.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+  // Gemini 3.x models can attach a thoughtSignature-only part with no
+  // "text" field before the actual answer — reading parts[0].text alone
+  // can silently return undefined even on a successful response. Join
+  // every part that actually has text instead.
+  const parts = data.candidates?.[0]?.content?.parts ?? [];
+  const text = parts
+    .map((p) => p.text)
+    .filter(Boolean)
+    .join("")
+    .trim();
   return text || "No explanation available right now.";
 }
 
