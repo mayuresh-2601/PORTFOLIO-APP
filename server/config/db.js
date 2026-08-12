@@ -28,6 +28,16 @@ if (missing.length > 0) {
    Database Connection Pool
  */
 
+// SSL is required for TiDB Cloud in production, but CI/local Docker Compose
+// runs against a plain MySQL container with a self-signed cert that would
+// fail strict validation. DB_SSL lets that be controlled explicitly;
+// if unset, it falls back to the previous NODE_ENV-based behavior so real
+// deployments (Render + TiDB Cloud) are unaffected.
+const sslEnabled =
+  process.env.DB_SSL !== undefined
+    ? process.env.DB_SSL === "true"
+    : process.env.NODE_ENV === "production";
+
 const db = mysql.createPool({
   host: process.env.DB_HOST,
 
@@ -51,13 +61,12 @@ const db = mysql.createPool({
 
   namedPlaceholders: true,
 
-  ssl:
-    process.env.NODE_ENV === "production"
-      ? {
-          minVersion: "TLSv1.2",
-          rejectUnauthorized: true,
-        }
-      : undefined,
+  ssl: sslEnabled
+    ? {
+        minVersion: "TLSv1.2",
+        rejectUnauthorized: true,
+      }
+    : undefined,
 });
 
 /* 

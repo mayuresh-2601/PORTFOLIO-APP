@@ -67,6 +67,12 @@ jobs:
           DB_PASSWORD=ci_test_password
           DB_NAME=portfolio_ci
 
+          # CI's database is a local Docker MySQL container with a
+          # self-signed cert, not TiDB Cloud's real CA-signed cert.
+          # Strict SSL validation would fail here, so it's explicitly
+          # disabled for this workflow only.
+          DB_SSL=false
+
           JWT_SECRET=ci_test_jwt_secret_not_for_production
 
           ADMIN_EMAIL=admin@example.com

@@ -1,114 +1,46 @@
-services:
-  
-  # MySQL Database
-  
-  db:
-    image: mysql:8.0
 
-    container_name: portfolio_db_container
-
-    restart: unless-stopped
-
-    env_file:
-      - ./server/.env
-
-    environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
-      MYSQL_DATABASE: ${DB_NAME}
-
-    ports:
-      - "3307:3306"
-
-    volumes:
-      - mysql_data:/var/lib/mysql
-      - ./server/database/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
-
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "mysqladmin",
-          "ping",
-          "-h",
-          "localhost"
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-
-    networks:
-      - portfolio_net
-
-  
-  # Express Backend
-  
-  server:
-    build:
-      context: ./server
-      dockerfile: Dockerfile
-
-    container_name: portfolio_server_container
-
-    restart: unless-stopped
-
-    env_file:
-      - ./server/.env
-
-    ports:
-      - "5000:5000"
-
-    depends_on:
-      db:
-        condition: service_healthy
-
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "--spider",
-          "-q",
-          "http://localhost:5000/api/health"
-        ]
-      interval: 15s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
-
-    networks:
-      - portfolio_net
-
-  
-  # React + Nginx
-  
-  client:
-    build:
-      context: ./client
-      dockerfile: Dockerfile
-
-    container_name: portfolio_client_container
-
-    restart: unless-stopped
-
-    ports:
-      - "80:80"
-
-    depends_on:
-      server:
-        condition: service_healthy
-
-    networks:
-      - portfolio_net
+# Portfolio Backend - Production Dockerfile
 
 
-# Persistent Volumes
+FROM node:20-alpine
 
-volumes:
-  mysql_data:
+# Image metadata
+LABEL maintainer="Mayuresh Kasar"
+LABEL description="Portfolio Backend API - Node.js + Express.js"
 
+# Create application directory
+WORKDIR /app
 
-# Networks
+# Copy package files first for better Docker cache
+COPY package*.json ./
 
-networks:
-  portfolio_net:
-    driver: bridge
+# Install production dependencies
+RUN if [ -f package-lock.json ]; then \
+      npm ci --omit=dev; \
+    else \
+      npm install --omit=dev; \
+    fi && \
+    npm cache clean --force
+
+# Copy application source
+COPY . .
+
+# Production environment
+ENV NODE_ENV=production
+
+# Create non-root user
+RUN addgroup -S nodegroup && \
+    adduser -S nodeuser -G nodegroup && \
+    chown -R nodeuser:nodegroup /app
+
+USER nodeuser
+
+# Expose backend port
+EXPOSE 5000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+CMD wget --no-verbose --tries=1 --spider http://localhost:5000/api/health || exit 1
+
+# Start server
+CMD ["node", "server.js"]
