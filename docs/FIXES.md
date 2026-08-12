@@ -6,7 +6,29 @@ real server boot test) — not guessed or assumed.
 
 ---
 
-## 🔴 Critical — found this round
+## 🔴 Critical — found this round (round 2)
+
+### 5. Gemini model `gemini-1.5-flash` was retired by Google
+**What was wrong:** `aiService.js` called `gemini-1.5-flash`, which Google fully retired
+sometime after this project's AI feature was first built. The API returned:
+```
+404: models/gemini-1.5-flash is not found for API version v1beta,
+or is not supported for generateContent.
+```
+
+**Fix:** switched to `gemini-2.5-flash` — confirmed via Google's current official docs
+and code samples (checked live, not from training data, since Gemini's model lineup has
+moved through several generations recently) to be a currently supported model on the
+same `v1beta/generateContent` endpoint already in use.
+
+**Note:** I don't have your real `GEMINI_API_KEY`, so I could not make a live end-to-end
+call to 100% confirm the response — only confirm the model name is current per Google's
+own documentation. Test this after redeploying; if Google retires this model too in the
+future, check https://ai.google.dev/gemini-api/docs/models for the current list.
+
+---
+
+## 🔴 Critical — found this round (round 1)
 
 ### 1. `server/Dockerfile` was not a Dockerfile
 **What was wrong:** the file's entire contents had been overwritten with a copy of

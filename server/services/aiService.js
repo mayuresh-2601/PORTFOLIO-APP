@@ -4,7 +4,11 @@
 // Uses gemini-1.5-flash — Google's fast/cheap model, the right choice for
 // short "explain this in plain English" calls rather than a heavier model.
 
-const GEMINI_MODEL = "gemini-1.5-flash";
+// gemini-1.5-flash was retired by Google — this is a current, supported
+// fast/cheap model as of mid-2026. If Google retires this one too in the
+// future, check https://ai.google.dev/gemini-api/docs/models for the
+// current model list and swap the string below.
+const GEMINI_MODEL = "gemini-2.5-flash";
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 const SYSTEM_PROMPT = `You are an assistant embedded in Mayuresh Kasar's developer portfolio website.
