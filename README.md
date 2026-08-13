@@ -48,36 +48,36 @@ This repository is a full-stack developer portfolio — not a static template, b
 
 ## Screenshots
 
-> Add your screenshots to `docs/screenshots/` using the filenames below, and they'll render automatically here.
+### Public Site
 
-| Home | Skills — AI Explain |
+| Home | About |
 |---|---|
-| ![Home page](docs/screenshots/home.png) | ![AI explaining a skill](docs/screenshots/skills-ai-explain.png) |
+| ![Home page](docs/screenshots/home%20.png) | ![About page](docs/screenshots/about%20.png) |
 
-| Certificates | Live System Panel |
+| Skills — AI Explain | Projects |
 |---|---|
-| ![Certificates page](docs/screenshots/certificates.png) | ![Live system monitoring panel](docs/screenshots/system-panel.png) |
+| ![Skills page with AI explain feature](docs/screenshots/skills%20.png) | ![Featured projects](docs/screenshots/project%20.png) |
 
-| Admin Dashboard | Mobile View |
+| Certificates | Contact |
 |---|---|
-| ![Admin dashboard](docs/screenshots/admin-dashboard.png) | ![Mobile responsive view](docs/screenshots/mobile-view.png) |
+| ![Certificates page](docs/screenshots/certificate%20.png) | ![Contact form](docs/screenshots/contact%20.png) |
 
-<details>
-<summary><strong>How to add your own screenshots</strong></summary>
+### DevOps Proof — Live System Panel
 
-1. Take screenshots of each page (browser DevTools device toolbar works well for the mobile shot)
-2. Save them into `docs/screenshots/` using the exact filenames referenced above
-3. Commit and push — GitHub renders them automatically in this README
+![Live system monitoring panel](docs/screenshots/live%20system%20.png)
 
-```bash
-mkdir -p docs/screenshots
-# move your screenshots into docs/screenshots/ with the names above
-git add docs/screenshots
-git commit -m "Add README screenshots"
-git push
-```
+Real, live CPU load, memory usage, uptime, and environment info pulled straight from the
+running backend — not mocked data. Refreshes every 5 seconds. See [Live System
+panel](#features) above for details.
 
-</details>
+### Admin Dashboard
+
+| Login | Dashboard |
+|---|---|
+| ![Admin login](docs/screenshots/login.png) | ![Admin dashboard](docs/screenshots/dashboard%20.png) |
+
+JWT-authenticated admin area for managing projects, skills, and certificates — full CRUD,
+no direct database access needed.
 
 ---
 
