@@ -17,6 +17,7 @@ export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
+  const token = localStorage.getItem("token");
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -61,7 +62,8 @@ export default function Navbar() {
             );
           })}
 
-          <li>
+          {token && (
+            <li>
               <Link
                 to="/admin/dashboard"
                 className="ml-4 px-4 py-2 bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-full text-sm font-medium flex items-center gap-2 hover:bg-amber-500/20 transition"
@@ -69,6 +71,7 @@ export default function Navbar() {
                 <Shield size={16} /> Admin
               </Link>
             </li>
+          )}
         </ul>
 
         <button

@@ -40,7 +40,7 @@ export default function AdminLogin() {
         password: form.password,
       });
 
-      sessionStorage.setItem("csrfToken", data.csrfToken);
+      localStorage.setItem("token", data.token);
 
       navigate("/admin/dashboard", { replace: true });
     } catch (error) {

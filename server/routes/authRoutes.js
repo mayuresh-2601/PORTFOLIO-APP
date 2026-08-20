@@ -1,28 +1,33 @@
 import express from "express";
 
-import { getCurrentUser, login, logout } from "../controllers/authController.js";
-import { loginRateLimiter } from "../middleware/rateLimit.js";
-import protect from "../middleware/authMiddleware.js";
-import { getCsrfToken } from "../utils/authCookies.js";
+import { login } from "../controllers/authController.js";
 
 const router = express.Router();
 
-router.post("/login", loginRateLimiter, login);
+/* 
+   Authentication Routes
+ */
 
-router.get("/csrf", (req, res) => {
-  const csrfToken = getCsrfToken(req);
+/**
+ * @route   POST /api/auth/login
+ * @desc    Authenticate admin user and return a JWT token
+ * @access  Public
+ */
+router.post("/login", login);
 
-  if (!csrfToken) {
-    return res.status(401).json({
-      success: false,
-      message: "Authentication session is not initialized.",
-    });
-  }
+/* 
+   Future Routes
+ */
 
-  return res.status(200).json({ success: true, csrfToken });
-});
-
-router.get("/me", protect, getCurrentUser);
-router.post("/logout", protect, logout);
+/**
+ * Future authentication routes can be added here.
+ *
+ * Example:
+ *
+ * router.post("/logout", logout);
+ * router.get("/me", protect, getCurrentUser);
+ * router.post("/refresh-token", refreshToken);
+ * router.put("/change-password", protect, changePassword);
+ */
 
 export default router;
