@@ -2,7 +2,7 @@
 
 # Mayuresh Kasar — Portfolio App
 
-**A production-grade full-stack portfolio with AI-powered explanations and a live DevOps monitoring panel.**
+**A production-style full-stack portfolio with AI-powered explanations and a live DevOps monitoring panel.**
 
 [![Live Site](https://img.shields.io/badge/Live-Vercel-black?style=flat-square&logo=vercel)](https://portfolio-app-tau-lac.vercel.app/)
 [![Backend](https://img.shields.io/badge/API-Render-46E3B7?style=flat-square&logo=render)](https://portfolio-app-mmlr.onrender.com)
@@ -89,7 +89,7 @@ no direct database access needed.
 - Contact form that stores messages and sends email notifications
 
 ### AI-powered explanations *(new)*
-- Click any skill or certificate to get a short, plain-language explanation generated on demand by **Google Gemini** (`gemini-1.5-flash`)
+- Click any skill or certificate to get a short, plain-language explanation generated on demand by **Google Gemini** (`gemini-3.5-flash-lite`)
 - **Ask AI About Me** chat on the `/system` page — visitors can ask questions like *"what DevOps skills does he have?"* and get an answer grounded in real listed skills, not hallucinated claims
 - Per-IP rate limiting on all AI endpoints to prevent abuse of the paid API
 
@@ -99,7 +99,7 @@ no direct database access needed.
 - This page exists specifically to prove Linux/DevOps skills with live evidence instead of a resume bullet point
 
 ### Admin dashboard
-- JWT-authenticated admin login
+- HttpOnly-cookie JWT admin session with CSRF protection
 - Full CRUD for projects, skills, and certificates
 - Cloudinary-backed image uploads
 
@@ -112,10 +112,10 @@ no direct database access needed.
 | Frontend | React 18, Vite 6, Tailwind CSS v4, Framer Motion, Lucide Icons |
 | Backend | Node.js, Express 5 (ES Modules) |
 | Database | MySQL-compatible — TiDB Cloud |
-| Auth | JWT + bcrypt |
+| Auth | JWT + bcrypt + HttpOnly cookie session |
 | File Storage | Cloudinary |
 | Email | Nodemailer |
-| AI | Google Gemini API (`gemini-1.5-flash`) |
+| AI | Google Gemini API (`gemini-3.5-flash-lite`) |
 | Deployment | Vercel (frontend) · Render (backend) |
 | Containerization | Docker + Docker Compose |
 
@@ -193,7 +193,11 @@ cd client
 npm install
 ```
 
-Edit `client/.env` and set it to point at your **local** backend during development:
+Create `client/.env` from the example and point it at your **local** backend:
+
+```bash
+cp .env.example .env
+```
 
 ```env
 VITE_API_BASE_URL=http://localhost:5000
@@ -213,17 +217,22 @@ Runs on **http://localhost:5173**.
 
 ### `server/.env`
 
+Copy `server/.env.example` and replace every placeholder with a real value. Important values include:
+
 ```env
+NODE_ENV=development
 PORT=5000
 CLIENT_URL=http://localhost:5173
+JWT_EXPIRES_IN=1d
 
 DB_HOST=your-tidb-host
 DB_PORT=4000
 DB_USER=your-db-user
 DB_PASSWORD=your-db-password
 DB_NAME=portfolio
+DB_SSL=true
 
-JWT_SECRET=replace-with-a-long-random-string
+JWT_SECRET=replace-with-a-long-random-secret
 
 ADMIN_EMAIL=admin@example.com
 ADMIN_PASSWORD_HASH=replace-with-bcrypt-hash
@@ -362,9 +371,12 @@ Full route definitions: `server/routes/` · Full controller logic: `server/contr
 
 ## Docker
 
-Local containerized development:
+For Docker Compose, create the root `.env` from `.env.example` because Compose uses `DB_PASSWORD` and `DB_NAME` for MySQL initialization:
 
 ```bash
+cp .env.example .env
+cp server/.env.example server/.env
+# Set DB_HOST=db and DB_SSL=false in server/.env for the local Compose database.
 docker compose up --build
 ```
 
@@ -389,6 +401,29 @@ After deploying, visit `/system` on your live site — if it shows real, changin
 
 ---
 
+## Security Hardening
+
+The current version uses a hardened browser-admin session and several abuse protections:
+
+- JWT is stored in an **HttpOnly, Secure cookie** in production instead of `localStorage`.
+- Production cross-site frontend/backend requests use `SameSite=None; Secure`; local development uses `SameSite=Lax`.
+- State-changing authenticated requests require a double-submit **CSRF token**.
+- Login attempts are rate limited to 5 per 15 minutes per IP.
+- Contact submissions are rate limited to 5 per 10 minutes per IP.
+- AI requests are rate limited to 10 per minute per IP.
+- CORS is restricted to the configured `CLIENT_URL`; there is no permissive `origin: true` fallback.
+- JSON and URL-encoded body limits are intentionally small.
+- Uploaded files require both an allowed MIME type and matching extension, with one file and a 10 MB limit.
+- User-controlled values are HTML-escaped before being inserted into notification emails.
+- Protected routes validate JWT issuer, audience, and the `admin` role.
+- Real `.env` files and Git metadata are excluded from release archives.
+
+The in-memory rate limiter is suitable for this single-instance portfolio deployment. If the backend is horizontally scaled, move rate-limit state to Redis or another shared store.
+
+### Important secret rotation
+
+The original development archive contained real-looking credentials. The fixed archive removes all `.env` files and `.git` history, but any credentials that were ever committed or shared must be considered exposed and **rotated** in Cloudinary, TiDB, Gmail/App Password, Gemini, and Render/Vercel as applicable.
+
 ## Troubleshooting
 
 | Symptom | Likely cause | Fix |
@@ -408,7 +443,7 @@ Check the server terminal (`npm run dev` in `server/`) for full stack traces on 
 ## Roadmap
 
 - [ ] WebSocket-based live push for `/system` instead of polling
-- [ ] CI/CD pipeline via GitHub Actions (build + test on every push)
+- [x] GitHub Actions CI pipeline — Dockerfile lint, Compose validation, image build, backend/frontend smoke tests, and failure log artifacts
 - [ ] Deploy a second instance to a raw Linux VM (EC2/Oracle Cloud) behind Nginx, as a DevOps deep-dive companion project
 - [ ] Dark/light theme toggle
 

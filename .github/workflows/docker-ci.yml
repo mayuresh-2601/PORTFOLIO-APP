@@ -1,4 +1,4 @@
-name: CI/CD Docker Pipeline
+name: Docker CI Pipeline
 
 on:
   push:
@@ -76,7 +76,7 @@ jobs:
           JWT_SECRET=ci_test_jwt_secret_not_for_production
 
           ADMIN_EMAIL=admin@example.com
-          ADMIN_PASSWORD_HASH=ci_test_admin_password_hash_placeholder_not_a_real_bcrypt_hash
+          ADMIN_PASSWORD_HASH=$2b$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy
 
           CLOUD_NAME=ci-test
           CLOUD_API_KEY=ci-test-key
@@ -125,13 +125,35 @@ jobs:
             --output /dev/null \
             http://localhost:5000/api/projects)
 
-          if [ "$STATUS" = "200" ] || [ "$STATUS" = "404" ]; then
+          if [ "$STATUS" = "200" ]; then
             echo "Backend API OK ($STATUS)"
           else
             echo "Backend API Failed ($STATUS)"
             docker compose logs server
             exit 1
           fi
+
+
+      - name: Test Admin Authentication + CSRF
+        run: |
+          rm -f /tmp/cookies.txt
+          LOGIN=$(curl -sS -c /tmp/cookies.txt -b /tmp/cookies.txt \
+            -H "Content-Type: application/json" \
+            -X POST http://localhost:5000/api/auth/login \
+            -d '{"email":"admin@example.com","password":"password"}')
+
+          echo "$LOGIN" | grep -q '"success":true'
+          CSRF=$(echo "$LOGIN" | sed -n 's/.*"csrfToken":"\([^"]*\)".*/\1/p')
+          test -n "$CSRF"
+
+          ME_STATUS=$(curl -sS -o /dev/null -w "%{http_code}" \
+            -b /tmp/cookies.txt http://localhost:5000/api/auth/me)
+          test "$ME_STATUS" = "200"
+
+          LOGOUT_STATUS=$(curl -sS -o /dev/null -w "%{http_code}" \
+            -b /tmp/cookies.txt -H "X-CSRF-Token: $CSRF" \
+            -X POST http://localhost:5000/api/auth/logout)
+          test "$LOGOUT_STATUS" = "200"
 
       - name: Test Frontend
         run: |

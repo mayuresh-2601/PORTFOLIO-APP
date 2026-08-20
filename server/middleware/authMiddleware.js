@@ -1,31 +1,19 @@
 import jwt from "jsonwebtoken";
+import { getAuthToken } from "../utils/authCookies.js";
 
-/* 
+/*
    JWT Authentication Middleware
- */
 
-/**
- * Protect routes using JWT authentication.
- */
+   The browser admin session is stored in an HttpOnly cookie instead of
+   localStorage. This keeps the JWT inaccessible to client-side JavaScript.
+*/
 export const protect = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-
-  // ------------------------------------------
-  // Validate Authorization Header
-  // ------------------------------------------
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({
-      success: false,
-      message: "Authorization token is required.",
-    });
-  }
-
-  const token = authHeader.substring(7).trim();
+  const token = getAuthToken(req);
 
   if (!token) {
     return res.status(401).json({
       success: false,
-      message: "Authorization token is required.",
+      message: "Authentication is required.",
     });
   }
 
@@ -33,7 +21,6 @@ export const protect = (req, res, next) => {
 
   if (!jwtSecret) {
     console.error("JWT_SECRET environment variable is missing.");
-
     return res.status(500).json({
       success: false,
       message: "Server configuration error.",
@@ -41,9 +28,12 @@ export const protect = (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, jwtSecret);
+    const decoded = jwt.verify(token, jwtSecret, {
+      issuer: "portfolio-api",
+      audience: "portfolio-admin",
+    });
 
-    if (!decoded || typeof decoded !== "object") {
+    if (!decoded || typeof decoded !== "object" || decoded.role !== "admin") {
       return res.status(401).json({
         success: false,
         message: "Invalid authentication token.",
@@ -51,30 +41,18 @@ export const protect = (req, res, next) => {
     }
 
     req.user = decoded;
-
     return next();
   } catch (error) {
     if (process.env.NODE_ENV !== "production") {
-      console.error("Authentication Error:", error);
-    }
-
-    if (error.name === "TokenExpiredError") {
-      return res.status(401).json({
-        success: false,
-        message: "Authentication token has expired.",
-      });
-    }
-
-    if (error.name === "JsonWebTokenError") {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid authentication token.",
-      });
+      console.error("Authentication Error:", error.message);
     }
 
     return res.status(401).json({
       success: false,
-      message: "Authentication failed.",
+      message:
+        error.name === "TokenExpiredError"
+          ? "Authentication session has expired."
+          : "Invalid authentication session.",
     });
   }
 };

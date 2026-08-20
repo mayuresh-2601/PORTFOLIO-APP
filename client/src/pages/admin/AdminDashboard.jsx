@@ -61,9 +61,15 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    window.location.href = "/";
+  const handleLogout = async () => {
+    try {
+      await api.post("/auth/logout");
+    } catch (error) {
+      console.warn("Logout request failed:", error?.message);
+    } finally {
+      sessionStorage.removeItem("csrfToken");
+      window.location.href = "/";
+    }
   };
 
   const addProject = async () => {

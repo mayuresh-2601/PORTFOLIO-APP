@@ -1,77 +1,53 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-
-/* 
-   Admin Login
- */
+import { clearAuthCookies, setAuthCookies } from "../utils/authCookies.js";
 
 export const login = async (req, res, next) => {
   try {
-    let { email, password } = req.body;
+    const email = req.body?.email?.trim().toLowerCase();
+    const password = req.body?.password;
 
-    email = email?.trim().toLowerCase();
-    password = password?.trim();
-
-    // Validate request
-    if (!email || !password) {
+    if (!email || typeof password !== "string") {
       return res.status(400).json({
         success: false,
         message: "Email and password are required.",
       });
     }
 
-    const adminEmail = (process.env.ADMIN_EMAIL || "")
-      .trim()
-      .toLowerCase();
+    if (email.length > 150 || password.length > 256) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid login details.",
+      });
+    }
 
-    const adminPasswordHash = (
-      process.env.ADMIN_PASSWORD_HASH || ""
-    ).trim();
-
+    const adminEmail = (process.env.ADMIN_EMAIL || "").trim().toLowerCase();
+    const adminPasswordHash = (process.env.ADMIN_PASSWORD_HASH || "").trim();
     const jwtSecret = process.env.JWT_SECRET;
+    const jwtExpiry = process.env.JWT_EXPIRES_IN || "7d";
 
-    const jwtExpiry =
-      process.env.JWT_EXPIRES_IN || "7d";
-
-    // Validate environment variables
     if (!adminEmail || !adminPasswordHash || !jwtSecret) {
-      console.error(
-        "Authentication environment variables are missing."
-      );
-
+      console.error("Authentication environment variables are missing.");
       return res.status(500).json({
         success: false,
         message: "Server configuration error.",
       });
     }
 
-    // Verify email
-    if (email !== adminEmail) {
+    const emailMatches = email === adminEmail;
+    const passwordMatch = emailMatches
+      ? await bcrypt.compare(password, adminPasswordHash)
+      : false;
+
+    if (!emailMatches || !passwordMatch) {
       return res.status(401).json({
         success: false,
         message: "Invalid email or password.",
       });
     }
 
-    // Verify password
-    const passwordMatch = await bcrypt.compare(
-      password,
-      adminPasswordHash
-    );
-
-    if (!passwordMatch) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid email or password.",
-      });
-    }
-
-    // Generate JWT
     const token = jwt.sign(
-      {
-        email: adminEmail,
-        role: "admin",
-      },
+      { email: adminEmail, role: "admin" },
       jwtSecret,
       {
         expiresIn: jwtExpiry,
@@ -80,11 +56,13 @@ export const login = async (req, res, next) => {
       }
     );
 
+    const csrfToken = setAuthCookies(res, token);
+
     return res.status(200).json({
       success: true,
       message: "Login successful.",
-      token,
       expiresIn: jwtExpiry,
+      csrfToken,
       user: {
         email: adminEmail,
         role: "admin",
@@ -92,9 +70,26 @@ export const login = async (req, res, next) => {
     });
   } catch (error) {
     if (process.env.NODE_ENV !== "production") {
-      console.error("Login Error:", error);
+      console.error("Login Error:", error.message);
     }
-
     next(error);
   }
+};
+
+export const getCurrentUser = (req, res) => {
+  return res.status(200).json({
+    success: true,
+    user: {
+      email: req.user.email,
+      role: req.user.role,
+    },
+  });
+};
+
+export const logout = (req, res) => {
+  clearAuthCookies(res);
+  return res.status(200).json({
+    success: true,
+    message: "Logged out successfully.",
+  });
 };

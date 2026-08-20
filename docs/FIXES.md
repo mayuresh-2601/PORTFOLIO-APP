@@ -217,3 +217,25 @@ regressed:
 After you push and redeploy, re-run the GitHub Actions workflow and check the live
 `/system` and `/skills` pages. If anything still fails, send me the new log/screenshot —
 same as before, I'll trace the exact cause rather than guessing.
+
+---
+
+## Security hardening pass — 2026-08-19
+
+### 7. JWT removed from browser localStorage
+The admin JWT is now delivered only as an HttpOnly cookie. The frontend keeps only a short-lived CSRF token in sessionStorage for authenticated state-changing requests.
+
+### 8. Added CSRF protection
+Authenticated POST/PUT/DELETE requests require a matching `X-CSRF-Token` header and CSRF cookie. Login is rate limited and establishes the session plus CSRF token.
+
+### 9. Added abuse controls
+Login, contact, and AI endpoints now have per-IP rate limits. AI remains capped at 10 requests/minute, while login and contact have tighter limits.
+
+### 10. Tightened CORS and request limits
+CORS now requires the configured `CLIENT_URL`; the permissive fallback was removed. JSON and URL-encoded request limits were reduced to avoid unnecessarily large request bodies.
+
+### 11. Hardened uploads and email rendering
+Uploads require a matching allowed MIME type and extension, and generated notification HTML escapes user-controlled values before insertion.
+
+### 12. Removed secrets from the release archive
+The fixed release ZIP contains no real `.env` files and no `.git` history. Any credentials previously present in the original archive should be rotated at their providers.
